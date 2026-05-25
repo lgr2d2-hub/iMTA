@@ -52,7 +52,11 @@ export default function Layout({ children }) {
       </button>
 
       <SideMenu open={menuOpen} onOpenChange={setMenuOpen} />
-      <NotificationPanel open={notifOpen} onOpenChange={setNotifOpen} />
+      <NotificationPanel
+        open={notifOpen}
+        onOpenChange={setNotifOpen}
+        onOpenChat={() => setChatOpen(true)}
+      />
       <ChatLobby open={chatOpen} onOpenChange={setChatOpen} />
       <WritePostModal
         open={writeOpen}

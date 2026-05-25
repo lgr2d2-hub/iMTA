@@ -89,7 +89,7 @@ export function OnboardingModal({ open }) {
               <SelectTrigger data-testid="onboarding-occupation"><SelectValue placeholder={t("select")} /></SelectTrigger>
               <SelectContent>
                 {OCCUPATIONS.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>{catLabel(o, lang)}</SelectItem>
+                  <SelectItem key={o.value} value={o.value}>{catLabel(o, lang, "occupation")}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

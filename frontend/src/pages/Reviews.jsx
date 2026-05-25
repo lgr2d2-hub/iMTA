@@ -59,7 +59,7 @@ export default function Reviews() {
             className={`text-xs px-3 py-1.5 rounded-full whitespace-nowrap font-medium ${category === c.id ? "bg-imta text-white" : "bg-white border"}`}
             data-testid={`review-cat-${c.id}`}
           >
-            {c.icon} {catLabel(c, lang)}
+            {c.icon} {catLabel(c, lang, "review")}
           </button>
         ))}
       </div>
@@ -149,7 +149,7 @@ function CreateReviewDialog({ open, onOpenChange, onCreated, user, t }) {
         <div className="space-y-3">
           <Select value={category} onValueChange={setCategory}>
             <SelectTrigger data-testid="review-cat-select"><SelectValue placeholder={t("category")} /></SelectTrigger>
-            <SelectContent>{REVIEW_CATEGORIES.map((c) => <SelectItem key={c.id} value={c.id}>{c.icon} {catLabel(c, lang)}</SelectItem>)}</SelectContent>
+            <SelectContent>{REVIEW_CATEGORIES.map((c) => <SelectItem key={c.id} value={c.id}>{c.icon} {catLabel(c, lang, "review")}</SelectItem>)}</SelectContent>
           </Select>
           <input value={placeName} onChange={(e) => setPlaceName(e.target.value)} placeholder={t("place_name")} className="w-full px-3 py-2 rounded-lg border bg-white text-sm outline-none" data-testid="review-place-input" />
           <div>

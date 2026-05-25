@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-route
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/context/AuthContext";
 import { LanguageProvider } from "@/context/LanguageContext";
+import { NotificationProvider } from "@/context/NotificationContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AuthCallback from "@/components/AuthCallback";
 import Layout from "@/components/Layout";
@@ -70,10 +71,12 @@ export default function App() {
   return (
     <LanguageProvider>
       <AuthProvider>
-        <BrowserRouter>
-          <AppRouter />
-          <Toaster position="top-center" richColors />
-        </BrowserRouter>
+        <NotificationProvider>
+          <BrowserRouter>
+            <AppRouter />
+            <Toaster position="top-center" richColors />
+          </BrowserRouter>
+        </NotificationProvider>
       </AuthProvider>
     </LanguageProvider>
   );

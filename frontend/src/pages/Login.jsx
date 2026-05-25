@@ -1,5 +1,4 @@
 import React from "react";
-import { Logo } from "../components/Logo";
 import { useLang } from "../context/LanguageContext";
 import { LANGUAGES } from "../lib/i18n";
 import { Globe } from "lucide-react";
@@ -35,20 +34,14 @@ export default function Login() {
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center px-6 text-center fade-up">
-        <div
-          style={{
-            width: 88, height: 88, borderRadius: 22,
-            background: "linear-gradient(135deg, #2E6B5E 0%, #4DB8A8 100%)",
-            color: "white", display: "flex", alignItems: "center", justifyContent: "center",
-            fontWeight: 800, fontSize: 48, letterSpacing: -2,
-            boxShadow: "0 12px 30px rgba(46, 107, 94, 0.3)",
-          }}
-        >
-          i
-        </div>
-        <h1 className="text-3xl font-extrabold mt-5 tracking-tight">iMTA</h1>
-        <p className="text-sm text-gray-600 mt-1">{t("app_name")}</p>
-        <p className="text-xs text-gray-500 max-w-xs mt-4 leading-relaxed">{t("app_tagline")}</p>
+        <img
+          src="https://customer-assets.emergentagent.com/job_korea-migrants/artifacts/fkevrnsw_image.png"
+          alt="iMTA"
+          style={{ width: 160, height: "auto" }}
+          data-testid="login-logo"
+        />
+        <p className="text-sm text-gray-600 mt-2">{t("app_name")}</p>
+        <p className="text-xs text-gray-500 max-w-xs mt-3 leading-relaxed">{t("app_tagline")}</p>
 
         <button
           onClick={handleLogin}

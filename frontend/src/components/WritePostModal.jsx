@@ -57,7 +57,7 @@ export function WritePostModal({ open, onOpenChange, onCreated }) {
               <SelectTrigger data-testid="post-category-select"><SelectValue placeholder={t("select_category")} /></SelectTrigger>
               <SelectContent>
                 {BOARD_CATEGORIES.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.icon} {catLabel(c, lang)}</SelectItem>
+                  <SelectItem key={c.id} value={c.id}>{c.icon} {catLabel(c, lang, "board")}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -69,7 +69,7 @@ export function WritePostModal({ open, onOpenChange, onCreated }) {
                 <SelectTrigger data-testid="post-subcategory-select"><SelectValue placeholder={t("select")} /></SelectTrigger>
                 <SelectContent>
                   {category.subs.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>{catLabel(s, lang)}</SelectItem>
+                    <SelectItem key={s.id} value={s.id}>{catLabel(s, lang, "sub")}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

@@ -563,11 +563,11 @@ async def post_message(channel_id: str, payload: ChatMessageCreate, user: Dict[s
 async def list_notifications(user: Dict[str, Any] = Depends(get_current_user)):
     items = await db.notifications.find({"user_id": user["user_id"]}, {"_id": 0}).sort("created_at", -1).to_list(50)
     if not items:
-        # Seed three demo notifications for new users
+        # Seed three demo notifications for new users with navigation targets
         seed = [
-            {"notification_id": f"n_{uuid.uuid4().hex[:8]}", "user_id": user["user_id"], "type": "comment", "title": "내 글에 댓글이 달렸습니다", "body": "비자 연장 성공 후기에 새 댓글이 있어요", "read": False, "created_at": now_iso()},
-            {"notification_id": f"n_{uuid.uuid4().hex[:8]}", "user_id": user["user_id"], "type": "reply", "title": "내 댓글에 답장", "body": "Maria님이 답장을 남겼습니다", "read": False, "created_at": now_iso()},
-            {"notification_id": f"n_{uuid.uuid4().hex[:8]}", "user_id": user["user_id"], "type": "chat", "title": "새 채팅 메시지", "body": "Global 채널에서 멘션됨", "read": False, "created_at": now_iso()},
+            {"notification_id": f"n_{uuid.uuid4().hex[:8]}", "user_id": user["user_id"], "type": "comment", "title": "내 글에 댓글이 달렸습니다", "body": "비자 연장 성공 후기에 새 댓글이 있어요", "post_id": "post_seed_1", "category_id": "visa", "read": False, "created_at": now_iso()},
+            {"notification_id": f"n_{uuid.uuid4().hex[:8]}", "user_id": user["user_id"], "type": "reply", "title": "내 댓글에 답장", "body": "Maria님이 답장을 남겼습니다", "post_id": "post_seed_5", "category_id": "daily", "read": False, "created_at": now_iso()},
+            {"notification_id": f"n_{uuid.uuid4().hex[:8]}", "user_id": user["user_id"], "type": "chat", "title": "새 채팅 메시지", "body": "Global 채널에서 멘션됨", "channel_id": "ch_global", "read": False, "created_at": now_iso()},
         ]
         await db.notifications.insert_many([s.copy() for s in seed])
         items = seed
@@ -612,6 +612,17 @@ async def translate(payload: TranslatePayload):
 @api.get("/")
 async def root():
     return {"app": "IMTA", "status": "ok"}
+
+
+@api.get("/stats")
+async def community_stats():
+    users = await db.users.count_documents({})
+    posts = await db.posts.count_documents({})
+    sigs = await db.petition_signatures.count_documents({})
+    # include hard-seeded signature counts as part of "total signatures"
+    pets = await db.petitions.find({}, {"_id": 0, "signature_count": 1}).to_list(50)
+    sigs += sum(p.get("signature_count", 0) for p in pets)
+    return {"users": users, "posts": posts, "signatures": sigs}
 
 
 # ============================================================

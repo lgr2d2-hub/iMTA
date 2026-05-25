@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Bell, Menu, Globe, Check } from "lucide-react";
 import { Logo } from "./Logo";
 import { useLang } from "../context/LanguageContext";
-import { useAuth } from "../context/AuthContext";
-import api from "../lib/api";
+import { useNotifications } from "../context/NotificationContext";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -15,24 +14,13 @@ import {
 
 export function Header({ onOpenMenu, onOpenNotifications }) {
   const { lang, setLang, languages, t } = useLang();
-  const { user } = useAuth();
-  const [unread, setUnread] = useState(0);
-
-  useEffect(() => {
-    let alive = true;
-    if (!user) return;
-    api.get("/notifications").then(({ data }) => {
-      if (!alive) return;
-      setUnread((data || []).filter((n) => !n.read).length);
-    }).catch(() => {});
-    return () => { alive = false; };
-  }, [user]);
-
+  const { unread } = useNotifications();
   const current = languages.find((l) => l.code === lang) || languages[0];
 
   return (
     <header
-      className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-gray-100"
+      className="sticky top-0 z-30"
+      style={{ background: "#FFFFFF", borderBottom: "1px solid #E8F4F1" }}
       data-testid="app-header"
     >
       <div className="flex items-center justify-between px-4 py-3">
@@ -72,7 +60,10 @@ export function Header({ onOpenMenu, onOpenNotifications }) {
           >
             <Bell size={20} className="text-gray-700" />
             {unread > 0 && (
-              <span className="absolute top-1 right-1 bg-red-500 text-white text-[10px] rounded-full px-1.5 min-w-[16px] h-4 flex items-center justify-center font-semibold">
+              <span
+                className="absolute top-1 right-1 bg-red-500 text-white text-[10px] rounded-full px-1.5 min-w-[16px] h-4 flex items-center justify-center font-semibold"
+                data-testid="notification-badge"
+              >
                 {unread}
               </span>
             )}

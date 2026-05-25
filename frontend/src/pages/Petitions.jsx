@@ -71,7 +71,7 @@ export default function Petitions() {
       <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-2 mb-2" data-testid="petition-cat-chips">
         <button onClick={() => setCategory("")} className={`text-xs px-3 py-1.5 rounded-full whitespace-nowrap ${!category ? "bg-imta text-white" : "bg-white border"}`} data-testid="petition-cat-all">{t("all")}</button>
         {PETITION_CATEGORIES.map((c) => (
-          <button key={c.id} onClick={() => setCategory(c.id)} className={`text-xs px-3 py-1.5 rounded-full whitespace-nowrap ${category === c.id ? "bg-imta text-white" : "bg-white border"}`} data-testid={`petition-cat-${c.id}`}>{catLabel(c, lang)}</button>
+          <button key={c.id} onClick={() => setCategory(c.id)} className={`text-xs px-3 py-1.5 rounded-full whitespace-nowrap ${category === c.id ? "bg-imta text-white" : "bg-white border"}`} data-testid={`petition-cat-${c.id}`}>{catLabel(c, lang, "petition")}</button>
         ))}
       </div>
 
@@ -142,7 +142,7 @@ function CreatePetitionDialog({ open, onOpenChange, onCreated, user, t }) {
           <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("title")} className="w-full px-3 py-2 rounded-lg border bg-white text-sm outline-none" data-testid="petition-title-input" />
           <Select value={category} onValueChange={setCategory}>
             <SelectTrigger data-testid="petition-cat-select"><SelectValue placeholder={t("category")} /></SelectTrigger>
-            <SelectContent>{PETITION_CATEGORIES.map((c) => <SelectItem key={c.id} value={c.id}>{catLabel(c, lang)}</SelectItem>)}</SelectContent>
+            <SelectContent>{PETITION_CATEGORIES.map((c) => <SelectItem key={c.id} value={c.id}>{catLabel(c, lang, "petition")}</SelectItem>)}</SelectContent>
           </Select>
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("description")} className="w-full px-3 py-2 rounded-lg border bg-white text-sm outline-none min-h-[140px]" data-testid="petition-desc-input" />
           <div>

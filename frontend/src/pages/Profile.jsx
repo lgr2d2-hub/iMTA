@@ -41,7 +41,7 @@ export default function Profile() {
         </div>
         <div className="text-lg font-bold mt-3" data-testid="profile-nickname">{user.nickname || user.name}</div>
         <div className="text-xs text-gray-500 mt-0.5">{user.country_name} · {user.district || "-"}</div>
-        <div className="text-xs text-gray-500">{catLabel(OCCUPATIONS.find((o) => o.value === user.occupation), lang) || "-"}</div>
+        <div className="text-xs text-gray-500">{catLabel(OCCUPATIONS.find((o) => o.value === user.occupation), lang, "occupation") || "-"}</div>
         <button onClick={() => setEditOpen(true)} className="mt-3 text-xs px-4 py-1.5 rounded-full bg-imta text-white inline-flex items-center gap-1" data-testid="edit-profile-btn">
           <Edit size={12} /> {t("edit_profile")}
         </button>

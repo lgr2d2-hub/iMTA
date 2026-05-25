@@ -75,12 +75,12 @@ export const SEOUL_DISTRICTS = [
 ];
 
 export const OCCUPATIONS = [
-  { value: "student", korean: "학생", english: "Student" },
-  { value: "worker", korean: "직장인", english: "Worker" },
-  { value: "self-employed", korean: "자영업", english: "Self-employed" },
-  { value: "job-seeking", korean: "구직중", english: "Job Seeking" },
-  { value: "homemaker", korean: "주부", english: "Homemaker" },
-  { value: "other", korean: "기타", english: "Other" },
+  { id: "student", value: "student", korean: "학생", english: "Student" },
+  { id: "worker", value: "worker", korean: "직장인", english: "Worker" },
+  { id: "self-employed", value: "self-employed", korean: "자영업", english: "Self-employed" },
+  { id: "job-seeking", value: "job-seeking", korean: "구직중", english: "Job Seeking" },
+  { id: "homemaker", value: "homemaker", korean: "주부", english: "Homemaker" },
+  { id: "other", value: "other", korean: "기타", english: "Other" },
 ];
 
 export const BOARD_CATEGORIES = [

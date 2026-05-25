@@ -84,7 +84,7 @@ export default function Board() {
                 >
                   <div className="font-semibold text-sm line-clamp-2">{p.title}</div>
                   <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                    {cat && <span className="imta-chip">{cat.icon} {catLabel(cat, lang)}</span>}
+                    {cat && <span className="imta-chip">{cat.icon} {catLabel(cat, lang, "board")}</span>}
                     <span className="text-xs text-gray-500">{p.author?.country_flag} {p.author?.nickname}</span>
                     <span className="text-xs text-gray-400">· {timeAgo(p.created_at, lang)}</span>
                   </div>
@@ -104,7 +104,7 @@ export default function Board() {
                   <div className="flex items-center gap-3 flex-1">
                     <div className="text-2xl">{cat.icon}</div>
                     <div className="text-left flex-1">
-                      <div className="text-sm font-semibold">{catLabel(cat, lang)}</div>
+                      <div className="text-sm font-semibold">{catLabel(cat, lang, "board")}</div>
                       {lang !== "ko" && <div className="text-xs text-gray-500">{cat.korean}</div>}
                     </div>
                     <span className="text-xs text-gray-400">{posts.length}</span>
