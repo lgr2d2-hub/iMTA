@@ -1,42 +1,38 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import api from "../lib/api";
 import { useLang } from "../context/LanguageContext";
-import { useAuth } from "../context/AuthContext";
 import { REVIEW_CATEGORIES } from "../lib/constants";
 import { catLabel } from "../lib/i18n";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { Switch } from "../components/ui/switch";
-import { Plus, Search, ThumbsUp, Languages, Star } from "lucide-react";
+import { Search, ThumbsUp, Languages, Star } from "lucide-react";
 import { toast } from "sonner";
 import { translateText, timeAgo } from "../lib/translate";
 
 export default function Reviews() {
   const { t, lang } = useLang();
-  const { user } = useAuth();
   const [category, setCategory] = useState("restaurant");
   const [query, setQuery] = useState("");
   const [items, setItems] = useState([]);
-  const [createOpen, setCreateOpen] = useState(false);
 
-  const load = () => {
+  const load = useCallback(() => {
     const params = new URLSearchParams();
     if (category) params.set("category", category);
     if (query) params.set("q", query);
     api.get(`/reviews?${params}`).then(({ data }) => setItems(data || [])).catch(() => setItems([]));
-  };
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [category]);
+  }, [category, query]);
+
+  useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    const refresh = () => load();
+    window.addEventListener("imta:reviews-updated", refresh);
+    return () => window.removeEventListener("imta:reviews-updated", refresh);
+  }, [load]);
 
   return (
     <div className="px-4 py-4 fade-up" data-testid="reviews-page">
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <div className="text-lg font-bold">{t("nav_reviews")} ⭐</div>
-          <div className="text-xs text-gray-600 mt-0.5">{t("tips_reviews")}</div>
-        </div>
-        <button onClick={() => setCreateOpen(true)} className="p-2 rounded-full bg-imta text-white" data-testid="create-review-btn">
-          <Plus size={18} />
-        </button>
+      <div className="mb-3">
+        <div className="text-lg font-bold">{t("nav_reviews")} ⭐</div>
+        <div className="text-xs text-gray-600 mt-0.5">{t("tips_reviews")}</div>
       </div>
 
       <div className="relative mb-2">
@@ -66,15 +62,13 @@ export default function Reviews() {
 
       <div className="space-y-2">
         {items.length === 0 && <div className="text-center text-xs text-gray-400 py-8">{t("no_posts")}</div>}
-        {items.map((r) => <ReviewCard key={r.review_id} r={r} t={t} lang={lang} onChange={load} />)}
+        {items.map((r) => <ReviewCard key={r.review_id} r={r} t={t} lang={lang} />)}
       </div>
-
-      <CreateReviewDialog open={createOpen} onOpenChange={setCreateOpen} onCreated={load} user={user} t={t} />
     </div>
   );
 }
 
-function ReviewCard({ r, t, lang, onChange }) {
+function ReviewCard({ r, t, lang }) {
   const [translated, setTranslated] = useState(null);
   const [translating, setTranslating] = useState(false);
   const [likes, setLikes] = useState(r.likes || 0);
@@ -117,59 +111,5 @@ function ReviewCard({ r, t, lang, onChange }) {
         </button>
       </div>
     </div>
-  );
-}
-
-function CreateReviewDialog({ open, onOpenChange, onCreated, user, t }) {
-  const { lang } = useLang();
-  const [category, setCategory] = useState("");
-  const [placeName, setPlaceName] = useState("");
-  const [rating, setRating] = useState(5);
-  const [content, setContent] = useState("");
-  const [anon, setAnon] = useState(false);
-  const [busy, setBusy] = useState(false);
-
-  const submit = async () => {
-    if (!user) { toast.error(t("login_required")); return; }
-    if (!category || !placeName.trim() || content.trim().length < 50) { toast.error(t("error")); return; }
-    setBusy(true);
-    try {
-      await api.post("/reviews", { category, place_name: placeName.trim(), rating, content: content.trim(), is_anonymous: anon });
-      toast.success(t("success"));
-      onOpenChange(false);
-      setCategory(""); setPlaceName(""); setRating(5); setContent(""); setAnon(false);
-      onCreated?.();
-    } catch { toast.error(t("error")); } finally { setBusy(false); }
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md" data-testid="create-review-modal">
-        <DialogHeader><DialogTitle>{t("create_review")}</DialogTitle></DialogHeader>
-        <div className="space-y-3">
-          <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger data-testid="review-cat-select"><SelectValue placeholder={t("category")} /></SelectTrigger>
-            <SelectContent>{REVIEW_CATEGORIES.map((c) => <SelectItem key={c.id} value={c.id}>{c.icon} {catLabel(c, lang, "review")}</SelectItem>)}</SelectContent>
-          </Select>
-          <input value={placeName} onChange={(e) => setPlaceName(e.target.value)} placeholder={t("place_name")} className="w-full px-3 py-2 rounded-lg border bg-white text-sm outline-none" data-testid="review-place-input" />
-          <div>
-            <label className="text-xs text-gray-600">{t("rating")}</label>
-            <div className="flex gap-1 mt-1" data-testid="review-rating-stars">
-              {[1,2,3,4,5].map((i) => (
-                <button key={i} onClick={() => setRating(i)} data-testid={`rating-star-${i}`}>
-                  <Star size={28} className={i <= rating ? "star-on fill-current" : "star-off"} />
-                </button>
-              ))}
-            </div>
-          </div>
-          <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder={t("review_ph")} className="w-full px-3 py-2 rounded-lg border bg-white text-sm outline-none min-h-[120px]" data-testid="review-content-input" />
-          <div className="flex items-center justify-between"><span className="text-sm">{t("anonymous")}</span><Switch checked={anon} onCheckedChange={setAnon} data-testid="review-anon-switch" /></div>
-        </div>
-        <DialogFooter>
-          <button onClick={() => onOpenChange(false)} className="btn-ghost">{t("cancel")}</button>
-          <button onClick={submit} disabled={busy} className="btn-primary" data-testid="review-submit-btn">{busy ? "..." : t("submit")}</button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }
