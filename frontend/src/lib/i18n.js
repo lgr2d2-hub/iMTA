@@ -60,6 +60,9 @@ const T = {
     translate_post: "이 글 번역하기", translating: "번역 중...",
     welcome_back: "다시 만나서 반가워요",
     member_since: "가입일",
+    search_posts_ph: "게시글 검색...",
+    no_results: "검색 결과 없음",
+    days_unit: "일",
   },
   en: {
     app_name: "Immigrants Time", app_tagline: "From scattered experiences to connected knowledge",
@@ -102,6 +105,9 @@ const T = {
     translate_post: "Translate this", translating: "Translating...",
     welcome_back: "Welcome back",
     member_since: "Joined",
+    search_posts_ph: "Search posts...",
+    no_results: "No results found",
+    days_unit: "days",
   },
   vi: {
     app_name: "Thời gian Nhập cư", app_tagline: "Từ kinh nghiệm rời rạc đến kiến thức kết nối",
@@ -144,6 +150,9 @@ const T = {
     translate_post: "Dịch bài này", translating: "Đang dịch...",
     welcome_back: "Chào mừng trở lại",
     member_since: "Tham gia",
+    search_posts_ph: "Tìm bài viết...",
+    no_results: "Không có kết quả",
+    days_unit: "ngày",
   },
   zh: {
     app_name: "移民时间", app_tagline: "从零散经验到互联知识",
@@ -186,6 +195,9 @@ const T = {
     translate_post: "翻译此帖", translating: "翻译中...",
     welcome_back: "欢迎回来",
     member_since: "加入于",
+    search_posts_ph: "搜索帖子...",
+    no_results: "无搜索结果",
+    days_unit: "天",
   },
   ja: {
     app_name: "イミグランツタイム", app_tagline: "散らばった経験をつながる知識へ",
@@ -228,6 +240,9 @@ const T = {
     translate_post: "この投稿を翻訳", translating: "翻訳中...",
     welcome_back: "おかえりなさい",
     member_since: "登録",
+    search_posts_ph: "投稿を検索...",
+    no_results: "結果がありません",
+    days_unit: "日",
   },
   fil: {
     app_name: "Immigrants Time", app_tagline: "Mula sa hiwa-hiwalay na karanasan tungo sa konektadong kaalaman",
@@ -270,6 +285,9 @@ const T = {
     translate_post: "Isalin ito", translating: "Isinasalin...",
     welcome_back: "Maligayang pagbabalik",
     member_since: "Sumali",
+    search_posts_ph: "Maghanap ng post...",
+    no_results: "Walang resulta",
+    days_unit: "araw",
   },
   km: {
     app_name: "ពេលអ្នកនិរទេស", app_tagline: "ពីបទពិសោធន៍ខ្ចាត់ខ្ចាយទៅជាចំណេះដឹងភ្ជាប់",
@@ -312,6 +330,9 @@ const T = {
     translate_post: "បកប្រែ", translating: "កំពុង​បកប្រែ...",
     welcome_back: "សូមស្វាគមន៍",
     member_since: "ចូលរួម",
+    search_posts_ph: "ស្វែងរក​ប្រកាស...",
+    no_results: "គ្មាន​លទ្ធផល",
+    days_unit: "ថ្ងៃ",
   },
   th: {
     app_name: "เวลาผู้อพยพ", app_tagline: "จากประสบการณ์กระจัดกระจายสู่ความรู้ที่เชื่อมโยง",
@@ -354,6 +375,9 @@ const T = {
     translate_post: "แปลโพสต์นี้", translating: "กำลังแปล...",
     welcome_back: "ยินดีต้อนรับกลับ",
     member_since: "เข้าร่วม",
+    search_posts_ph: "ค้นหาโพสต์...",
+    no_results: "ไม่พบผลลัพธ์",
+    days_unit: "วัน",
   },
   mn: {
     app_name: "Цагаачдын Цаг", app_tagline: "Тарангуй туршлагаас холбогдсон мэдлэг рүү",
@@ -396,6 +420,9 @@ const T = {
     translate_post: "Орчуулах", translating: "Орчуулж байна...",
     welcome_back: "Тавтай морил",
     member_since: "Нэгдсэн",
+    search_posts_ph: "Нийтлэл хайх...",
+    no_results: "Үр дүн олдсонгүй",
+    days_unit: "өдөр",
   },
   ru: {
     app_name: "Время Иммигранта", app_tagline: "От разрозненного опыта к связанным знаниям",
@@ -438,6 +465,9 @@ const T = {
     translate_post: "Перевести", translating: "Перевод...",
     welcome_back: "С возвращением",
     member_since: "С нами с",
+    search_posts_ph: "Поиск постов...",
+    no_results: "Ничего не найдено",
+    days_unit: "дн",
   },
   uz: {
     app_name: "Muhojirlar Vaqti", app_tagline: "Tarqoq tajribalardan bog'langan bilimga",
@@ -480,11 +510,22 @@ const T = {
     translate_post: "Tarjima qilish", translating: "Tarjima qilinmoqda...",
     welcome_back: "Qaytib kelganingiz bilan",
     member_since: "Qo'shilgan",
+    search_posts_ph: "Postlarni qidirish...",
+    no_results: "Natija topilmadi",
+    days_unit: "kun",
   },
 };
 
 export function tFor(lang, key) {
   return (T[lang] && T[lang][key]) || T.ko[key] || key;
+}
+
+// Pick the localized label for an item that has { korean, english } fields.
+// Korean shown for ko; English used as the bilingual fallback for every other locale.
+export function catLabel(item, lang) {
+  if (!item) return "";
+  if (lang === "ko") return item.korean || item.english || "";
+  return item.english || item.korean || "";
 }
 
 export default T;

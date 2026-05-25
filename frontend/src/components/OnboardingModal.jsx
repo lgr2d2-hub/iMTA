@@ -1,14 +1,15 @@
 import React, { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
+import { Dialog, DialogContent, DialogFooter } from "./ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { useLang } from "../context/LanguageContext";
 import { COUNTRIES, SEOUL_DISTRICTS, OCCUPATIONS } from "../lib/constants";
+import { catLabel } from "../lib/i18n";
 import api from "../lib/api";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 
 export function OnboardingModal({ open }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const { setUser } = useAuth();
   const [nickname, setNickname] = useState("");
   const [countryCode, setCountryCode] = useState("");
@@ -66,7 +67,7 @@ export function OnboardingModal({ open }) {
               <SelectTrigger data-testid="onboarding-country"><SelectValue placeholder={t("select")} /></SelectTrigger>
               <SelectContent className="max-h-72">
                 {COUNTRIES.map((c) => (
-                  <SelectItem key={c.code} value={c.code}>{c.flag} {c.korean} / {c.name}</SelectItem>
+                  <SelectItem key={c.code} value={c.code}>{c.flag} {lang === "ko" ? c.korean : c.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -88,7 +89,7 @@ export function OnboardingModal({ open }) {
               <SelectTrigger data-testid="onboarding-occupation"><SelectValue placeholder={t("select")} /></SelectTrigger>
               <SelectContent>
                 {OCCUPATIONS.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>{o.korean} / {o.english}</SelectItem>
+                  <SelectItem key={o.value} value={o.value}>{catLabel(o, lang)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

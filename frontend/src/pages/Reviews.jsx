@@ -3,6 +3,7 @@ import api from "../lib/api";
 import { useLang } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { REVIEW_CATEGORIES } from "../lib/constants";
+import { catLabel } from "../lib/i18n";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Switch } from "../components/ui/switch";
@@ -58,7 +59,7 @@ export default function Reviews() {
             className={`text-xs px-3 py-1.5 rounded-full whitespace-nowrap font-medium ${category === c.id ? "bg-imta text-white" : "bg-white border"}`}
             data-testid={`review-cat-${c.id}`}
           >
-            {c.icon} {c.korean} / {c.english}
+            {c.icon} {catLabel(c, lang)}
           </button>
         ))}
       </div>
@@ -120,6 +121,7 @@ function ReviewCard({ r, t, lang, onChange }) {
 }
 
 function CreateReviewDialog({ open, onOpenChange, onCreated, user, t }) {
+  const { lang } = useLang();
   const [category, setCategory] = useState("");
   const [placeName, setPlaceName] = useState("");
   const [rating, setRating] = useState(5);
@@ -147,7 +149,7 @@ function CreateReviewDialog({ open, onOpenChange, onCreated, user, t }) {
         <div className="space-y-3">
           <Select value={category} onValueChange={setCategory}>
             <SelectTrigger data-testid="review-cat-select"><SelectValue placeholder={t("category")} /></SelectTrigger>
-            <SelectContent>{REVIEW_CATEGORIES.map((c) => <SelectItem key={c.id} value={c.id}>{c.icon} {c.korean} / {c.english}</SelectItem>)}</SelectContent>
+            <SelectContent>{REVIEW_CATEGORIES.map((c) => <SelectItem key={c.id} value={c.id}>{c.icon} {catLabel(c, lang)}</SelectItem>)}</SelectContent>
           </Select>
           <input value={placeName} onChange={(e) => setPlaceName(e.target.value)} placeholder={t("place_name")} className="w-full px-3 py-2 rounded-lg border bg-white text-sm outline-none" data-testid="review-place-input" />
           <div>

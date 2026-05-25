@@ -2,10 +2,11 @@ import React from "react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../components/ui/accordion";
 import { LIFE_INFO_CATEGORIES } from "../lib/lifeInfo";
 import { useLang } from "../context/LanguageContext";
+import { catLabel } from "../lib/i18n";
 import { Phone, Globe, Mail } from "lucide-react";
 
 export default function LifeInfo() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
 
   return (
     <div className="px-4 py-4 fade-up" data-testid="lifeinfo-page">
@@ -21,8 +22,8 @@ export default function LifeInfo() {
               <div className="flex items-center gap-3 flex-1">
                 <div className="text-2xl">{cat.icon}</div>
                 <div className="text-left flex-1">
-                  <div className="text-sm font-semibold">{cat.korean}</div>
-                  <div className="text-xs text-gray-500">{cat.english}</div>
+                  <div className="text-sm font-semibold">{catLabel(cat, lang)}</div>
+                  {lang !== "ko" && <div className="text-xs text-gray-500">{cat.korean}</div>}
                 </div>
                 <span className="text-xs text-gray-400">{cat.items.length}</span>
               </div>

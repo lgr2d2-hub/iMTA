@@ -5,11 +5,12 @@ import { Switch } from "./ui/switch";
 import { toast } from "sonner";
 import { useLang } from "../context/LanguageContext";
 import { BOARD_CATEGORIES } from "../lib/constants";
+import { catLabel } from "../lib/i18n";
 import api from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 
 export function WritePostModal({ open, onOpenChange, onCreated }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const { user } = useAuth();
   const [categoryId, setCategoryId] = useState("");
   const [subId, setSubId] = useState("");
@@ -56,7 +57,7 @@ export function WritePostModal({ open, onOpenChange, onCreated }) {
               <SelectTrigger data-testid="post-category-select"><SelectValue placeholder={t("select_category")} /></SelectTrigger>
               <SelectContent>
                 {BOARD_CATEGORIES.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.icon} {c.korean} / {c.english}</SelectItem>
+                  <SelectItem key={c.id} value={c.id}>{c.icon} {catLabel(c, lang)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -68,7 +69,7 @@ export function WritePostModal({ open, onOpenChange, onCreated }) {
                 <SelectTrigger data-testid="post-subcategory-select"><SelectValue placeholder={t("select")} /></SelectTrigger>
                 <SelectContent>
                   {category.subs.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>{s.korean} / {s.english}</SelectItem>
+                    <SelectItem key={s.id} value={s.id}>{catLabel(s, lang)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

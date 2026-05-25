@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { SEOUL_DISTRICTS, OCCUPATIONS } from "../lib/constants";
+import { catLabel } from "../lib/i18n";
 import { Edit, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { timeAgo } from "../lib/translate";
@@ -40,7 +41,7 @@ export default function Profile() {
         </div>
         <div className="text-lg font-bold mt-3" data-testid="profile-nickname">{user.nickname || user.name}</div>
         <div className="text-xs text-gray-500 mt-0.5">{user.country_name} · {user.district || "-"}</div>
-        <div className="text-xs text-gray-500">{user.occupation || "-"}</div>
+        <div className="text-xs text-gray-500">{catLabel(OCCUPATIONS.find((o) => o.value === user.occupation), lang) || "-"}</div>
         <button onClick={() => setEditOpen(true)} className="mt-3 text-xs px-4 py-1.5 rounded-full bg-imta text-white inline-flex items-center gap-1" data-testid="edit-profile-btn">
           <Edit size={12} /> {t("edit_profile")}
         </button>
@@ -77,7 +78,7 @@ export default function Profile() {
         </Tabs>
       </div>
 
-      <EditProfileDialog open={editOpen} onOpenChange={setEditOpen} user={user} onSaved={setUser} t={t} />
+      <EditProfileDialog open={editOpen} onOpenChange={setEditOpen} user={user} onSaved={setUser} t={t} lang={lang} />
     </div>
   );
 }
@@ -134,7 +135,7 @@ function EditProfileDialog({ open, onOpenChange, user, onSaved, t }) {
             <label className="text-xs text-gray-600">{t("occupation")}</label>
             <Select value={occupation} onValueChange={setOccupation}>
               <SelectTrigger data-testid="edit-occupation"><SelectValue placeholder={t("select")} /></SelectTrigger>
-              <SelectContent>{OCCUPATIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.korean} / {o.english}</SelectItem>)}</SelectContent>
+              <SelectContent>{OCCUPATIONS.map((o) => <SelectItem key={o.value} value={o.value}>{catLabel(o, lang)}</SelectItem>)}</SelectContent>
             </Select>
           </div>
         </div>

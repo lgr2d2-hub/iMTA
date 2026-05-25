@@ -1,28 +1,20 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
-export function Logo({ size = 28 }) {
+export function Logo({ size = 34 }) {
+  const navigate = useNavigate();
   return (
-    <div className="flex items-center gap-2" data-testid="imta-logo">
-      <div
-        style={{
-          width: size,
-          height: size,
-          background: "linear-gradient(135deg, #2E6B5E 0%, #4DB8A8 100%)",
-          borderRadius: 8,
-          color: "white",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontWeight: 800,
-          fontSize: size * 0.55,
-          letterSpacing: -0.5,
-        }}
-      >
-        i
-      </div>
-      <span style={{ fontWeight: 800, fontSize: 18, color: "#1A1A1A", letterSpacing: -0.3 }}>
-        MTA
-      </span>
-    </div>
+    <button
+      onClick={() => navigate("/dashboard")}
+      className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+      data-testid="imta-logo"
+      aria-label="Go to dashboard"
+    >
+      <img
+        src="https://customer-assets.emergentagent.com/job_korea-migrants/artifacts/fkevrnsw_image.png"
+        alt="iMTA"
+        style={{ height: size, width: "auto", display: "block" }}
+      />
+    </button>
   );
 }

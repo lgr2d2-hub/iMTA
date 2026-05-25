@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Header } from "./Header";
 import { SideMenu } from "./SideMenu";
 import { NotificationPanel } from "./NotificationPanel";
@@ -9,8 +9,12 @@ import { OnboardingModal } from "./OnboardingModal";
 import { Pencil, MessageCircle } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
+// Paths where the write-post FAB should appear
+const WRITE_FAB_PATHS = [/^\/board(\/|$)/, /^\/petitions(\/|$)/, /^\/reviews(\/|$)/];
+
 export default function Layout({ children }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -18,6 +22,7 @@ export default function Layout({ children }) {
   const [writeOpen, setWriteOpen] = useState(false);
 
   const onboardingNeeded = user && !user.onboarded;
+  const showWriteFab = WRITE_FAB_PATHS.some((re) => re.test(location.pathname));
 
   return (
     <div className="imta-shell">
@@ -27,14 +32,16 @@ export default function Layout({ children }) {
       />
       <main className="pb-32">{children}</main>
 
-      <button
-        onClick={() => setWriteOpen(true)}
-        className="imta-fab imta-fab-write"
-        aria-label="write post"
-        data-testid="fab-write-post"
-      >
-        <Pencil size={22} />
-      </button>
+      {showWriteFab && (
+        <button
+          onClick={() => setWriteOpen(true)}
+          className="imta-fab imta-fab-write"
+          aria-label="write post"
+          data-testid="fab-write-post"
+        >
+          <Pencil size={22} />
+        </button>
+      )}
       <button
         onClick={() => setChatOpen(true)}
         className="imta-fab imta-fab-chat"
