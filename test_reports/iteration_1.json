@@ -1,0 +1,55 @@
+{
+  "summary": "Comprehensive backend (15/15 pytest pass) + frontend smoke testing of IMTA MVP. All seed data verified, auth flow with mongosh-injected session works, all 6 protected pages load, FABs visible everywhere, 11-language i18n switch works (KO↔EN verified), petitions show correct signature counts, onboarding modal blocks non-onboarded users.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_imta_backend.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py is 783 lines — single-file backend works for MVP but should be split into routers (auth/posts/petitions/reviews/chat/translate) and a seed module before adding more features.",
+    "GET /api/posts performs N+1 lookups (author + comment_count per post). For 5 seeded posts this is fine, but switch to aggregation $lookup or batch when posts grow.",
+    "POST /api/auth/google/session DOES NOT pop _id before returning user (line 168 calls clean(user) but the inserted dict still references the inserted _id only on existing path — actually fine due to projection {_id:0}). Verified ObjectId leak risk is mitigated everywhere via projection.",
+    "Translate endpoint POST /api/translate is unauthenticated and proxies to MyMemory with no rate-limit — small abuse vector if exposed publicly.",
+    "Seed signature counts are hardcoded in seed; user-driven sign increments will diverge from realistic ratios but matches PRD intent.",
+    "/api/auth/google/session sets cookie with samesite=none + secure — correct for the cross-origin preview environment.",
+    "No tests directory existed; created /app/backend/tests/test_imta_backend.py as regression suite for future iterations."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_imta_backend.py",
+    "/app/memory/test_credentials.md",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "Onboarded user: session_token=test_session_1779718769701, user_id=test_user_1779718769701 (테스트 🇻🇳 강남구 student). Non-onboarded user: session_token=test_notonboard_session_1779718928044 (for onboarding-modal testing). Auth via Cookie header `session_token=...` or `Authorization: Bearer <token>`.",
+  "seed_data_creation": "Created two mongosh test users + sessions. Documented in /app/memory/test_credentials.md.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Regression pytest at /app/backend/tests/test_imta_backend.py covers health, seed validation, auth, posts CRUD+react+save+comment, petition sign idempotency, reviews+like, chat post, notifications, translate. Use BACKEND_URL env or default public URL. Test users + sessions persist in test_database. FAB testids are fab-write-post / fab-chat-lobby (NOT fab-write/fab-chat). Language picker testid: language-picker-btn (header), login-lang-picker (login page); options: lang-{code}.",
+  "tested_features": [
+    "Backend health GET /api/ returns ok",
+    "GET /api/posts returns 5 seeded posts with correct authors (응우옌🇻🇳, Nana🇻🇳, 익명🕶️, 리웨이🇨🇳, Maria🇵🇭)",
+    "GET /api/petitions returns 5 petitions with exact signature counts [234125, 134425, 89432, 67218, 45891]",
+    "GET /api/reviews returns 4 reviews with correct ratings (Sieun 2★, Seohyeon 4★, Seunghwan 1★, 강남성모병원 5★)",
+    "GET /api/chat/channels returns 10 channels (6 default + 4 user)",
+    "Auth: /auth/me 401 unauth; /auth/me 200 with bearer token; /auth/google/session 401 on invalid session_id",
+    "Protected endpoint POST /api/posts returns 401 without auth",
+    "Create post → GET post → react helpful → save → comment → list comments (all persist)",
+    "Petition sign idempotent (second call returns already_signed=true)",
+    "Create review + like review (likes incremented)",
+    "Post chat message into ch_global; message visible in list",
+    "Notifications auto-seeds 3 for new user; read-all marks all read=true",
+    "Translate ko→en via MyMemory returns non-empty translation",
+    "Frontend /login loads with google-login-btn + login-lang-picker",
+    "Protected route /dashboard redirects to /login without cookie",
+    "With cookie: /dashboard, /board, /lifeinfo, /petitions, /reviews, /profile all render",
+    "FAB write + chat present on every protected page",
+    "Language picker switches KO→EN (환영합니다 → Welcome)",
+    "Onboarding modal blocks dashboard for onboarded=false users (nickname/country/district/occupation fields shown)"
+  ]
+}
