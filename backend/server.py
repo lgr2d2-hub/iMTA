@@ -385,6 +385,7 @@ async def my_posts(user: Dict[str, Any] = Depends(get_current_user)):
     items = await db.posts.find({"user_id": user["user_id"]}, {"_id": 0}).sort("created_at", -1).to_list(200)
     for p in items:
         p["author"] = await author_info(user["user_id"], p.get("is_anonymous", False))
+        p["comment_count"] = await db.comments.count_documents({"post_id": p["post_id"]})
     return items
 
 
@@ -395,12 +396,35 @@ async def my_saved(user: Dict[str, Any] = Depends(get_current_user)):
     items = await db.posts.find({"post_id": {"$in": ids}}, {"_id": 0}).to_list(200)
     for p in items:
         p["author"] = await author_info(p["user_id"], p.get("is_anonymous", False))
+        p["comment_count"] = await db.comments.count_documents({"post_id": p["post_id"]})
+        p["is_saved"] = True
+    return items
+
+
+@api.get("/me/liked")
+async def my_liked(user: Dict[str, Any] = Depends(get_current_user)):
+    reactions = await db.post_reactions.find(
+        {"user_id": user["user_id"], "reaction_type": "helpful"}, {"_id": 0}
+    ).to_list(500)
+    ids = [r["post_id"] for r in reactions]
+    items = await db.posts.find({"post_id": {"$in": ids}}, {"_id": 0}).to_list(500)
+    for p in items:
+        p["author"] = await author_info(p["user_id"], p.get("is_anonymous", False))
+        p["comment_count"] = await db.comments.count_documents({"post_id": p["post_id"]})
     return items
 
 
 @api.get("/me/comments")
 async def my_comments(user: Dict[str, Any] = Depends(get_current_user)):
     items = await db.comments.find({"user_id": user["user_id"]}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    # Attach the parent post title + category_id so the page can render context + link
+    post_ids = list({c["post_id"] for c in items})
+    posts = await db.posts.find({"post_id": {"$in": post_ids}}, {"_id": 0, "post_id": 1, "title": 1, "category_id": 1}).to_list(500)
+    by_id = {p["post_id"]: p for p in posts}
+    for c in items:
+        parent = by_id.get(c["post_id"])
+        c["post_title"] = parent.get("title") if parent else ""
+        c["category_id"] = parent.get("category_id") if parent else ""
     return items
 
 

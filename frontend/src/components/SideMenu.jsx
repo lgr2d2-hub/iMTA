@@ -12,11 +12,11 @@ export function SideMenu({ open, onOpenChange }) {
   const navigate = useNavigate();
 
   const items = [
-    { icon: FileText,      label: t("my_posts"),     path: "/profile?tab=posts",    id: "my-posts" },
-    { icon: MessageCircle, label: t("my_comments"),  path: "/profile?tab=comments", id: "my-comments" },
-    { icon: Heart,         label: t("liked_posts"),  path: "/profile?tab=liked",    id: "liked-posts" },
-    { icon: Bookmark,      label: t("saved_posts"),  path: "/profile?tab=saved",    id: "saved-posts" },
-    { icon: Settings,      label: t("settings"),     path: "/profile",              id: "settings" },
+    { icon: FileText,      label: t("my_posts"),     path: "/profile/posts",    id: "my-posts" },
+    { icon: MessageCircle, label: t("my_comments"),  path: "/profile/comments", id: "my-comments" },
+    { icon: Heart,         label: t("liked_posts"),  path: "/profile/liked",    id: "liked-posts" },
+    { icon: Bookmark,      label: t("saved_posts"),  path: "/profile/saved",    id: "saved-posts" },
+    { icon: Settings,      label: t("settings"),     path: "/settings",         id: "settings" },
   ];
 
   const go = (path) => { onOpenChange(false); navigate(path); };

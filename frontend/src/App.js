@@ -18,6 +18,11 @@ import Petitions from "@/pages/Petitions";
 import PetitionDetail from "@/pages/PetitionDetail";
 import Reviews from "@/pages/Reviews";
 import Profile from "@/pages/Profile";
+import MyPosts from "@/pages/MyPosts";
+import MyComments from "@/pages/MyComments";
+import LikedPosts from "@/pages/LikedPosts";
+import SavedPosts from "@/pages/SavedPosts";
+import Settings from "@/pages/Settings";
 
 function AppRouter() {
   const location = useLocation();
@@ -61,6 +66,26 @@ function AppRouter() {
       <Route
         path="/profile"
         element={<ProtectedRoute><Layout><Profile /></Layout></ProtectedRoute>}
+      />
+      <Route
+        path="/profile/posts"
+        element={<ProtectedRoute><Layout><MyPosts /></Layout></ProtectedRoute>}
+      />
+      <Route
+        path="/profile/comments"
+        element={<ProtectedRoute><Layout><MyComments /></Layout></ProtectedRoute>}
+      />
+      <Route
+        path="/profile/liked"
+        element={<ProtectedRoute><Layout><LikedPosts /></Layout></ProtectedRoute>}
+      />
+      <Route
+        path="/profile/saved"
+        element={<ProtectedRoute><Layout><SavedPosts /></Layout></ProtectedRoute>}
+      />
+      <Route
+        path="/settings"
+        element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>}
       />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
