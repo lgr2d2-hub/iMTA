@@ -30,7 +30,7 @@ function SectionHeader({ label, count }) {
   return (
     <div className="px-4 pt-4 pb-1 flex items-center justify-between">
       <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</div>
-      <div className="text-[10px] text-gray-400">{count}</div>
+      {count > 1 && <div className="text-[10px] text-gray-400">{count}</div>}
     </div>
   );
 }
@@ -54,6 +54,8 @@ export function ChatLobby({ open, onOpenChange }) {
 
   useEffect(() => {
     if (!active) return;
+    // Auto-join so the user receives future chat notifications for this channel.
+    api.post(`/chat/channels/${active.channel_id}/join`).catch(() => {});
     api.get(`/chat/channels/${active.channel_id}/messages`).then(({ data }) => {
       setMessages(data || []);
       setTimeout(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, 50);

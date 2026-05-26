@@ -41,7 +41,15 @@ Build "IMTA (이민자 타임 / Immigrants-Time)" — a beautiful, mobile-first,
 - Profile page with 4 activity tabs and edit profile dialog
 - Language picker (11 languages) in header + login page with localStorage persistence
 - Translation button on posts/petitions/reviews via MyMemory proxy + localStorage cache
-- Sample seed data auto-loaded on backend startup (5 posts, 5 petitions, 4 reviews, 10 channels, 6 chat messages)
+- Sample seed data auto-loaded on backend startup (5 posts, 5 petitions, 4 reviews, 20 channels, 6 chat messages)
+
+## 2026-02 update — P0 critical bug fixes (verified by testing agent iteration_2)
+- Review posting flow: discrete validation toasts (missing category / empty place / content < 50 chars), submit dispatches `imta:reviews-updated` custom event with `detail.category` so the Reviews page switches tab + refreshes automatically. Char counter `0/50` added in modal.
+- Notification backend triggers: comment → notify post author + prior commenters (`reply`), petition sign → notify petition creator, chat message → notify channel members. Self-notifications suppressed. ChatLobby now auto-joins on channel open so future messages fan-out to all participants.
+- NotificationContext: 30-second `setInterval` polling + `visibilitychange` listener re-fetches on tab focus.
+- ChatLobby restructure: 3 sections — Global (everyone), My Country (filtered by `user.country_code`), Interests (everyone) with `+ 채팅방 만들기` button that opens `CreateChannelModal` (30-emoji grid, name + description, validates ≥2 chars, auto-opens the new channel).
+- Backend `ChannelCreate` model now accepts `icon`; created channels persist the chosen emoji.
+- i18n: 13 new keys added to ko/en (other locales fall back to ko via `tFor`).
 
 ## Test Results (iteration_1.json)
 - Backend: 15/15 pytest pass (100%)
