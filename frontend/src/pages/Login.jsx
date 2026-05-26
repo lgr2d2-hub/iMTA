@@ -35,7 +35,7 @@ export default function Login() {
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center px-6 text-center fade-up">
-        <Logo size={36} clickable={false} testId="login-logo" />
+        <Logo size={120} clickable={false} testId="login-logo" />
         <p className="text-sm text-gray-600 mt-2">{t("app_name")}</p>
         <p className="text-xs text-gray-500 max-w-xs mt-3 leading-relaxed">{t("app_tagline")}</p>
 

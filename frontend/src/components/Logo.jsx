@@ -1,24 +1,31 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+const LOGO_URL = "https://customer-assets.emergentagent.com/job_korea-migrants/artifacts/m7c4vug1_image.png";
+
 /**
- * CSS-based iMTA wordmark. Uses inline text instead of an image so the logo
- * never breaks due to missing or slow-loading assets. The lowercase `i` is
- * teal-light and the `MTA` is teal-dark to match the brand palette.
+ * iMTA brand logo.
+ *
+ * Renders the brush-stroke wordmark image. If the image ever fails to load
+ * (network blocked, asset removed) we automatically fall back to an inline
+ * CSS wordmark so the brand never disappears.
  *
  * Props:
- *  - size: pixel font-size (defaults to 22 for header, pass 36 for splash).
- *  - clickable: when true (default), wraps the wordmark in a button that
- *    navigates to /dashboard.
+ *  - size: pixel height of the logo (defaults to 28 for header, pass larger
+ *    values like 120 for splash screens).
+ *  - clickable: when true (default) wraps the logo in a button that navigates
+ *    to /dashboard.
+ *  - testId: data-testid for tests.
  */
-export function Logo({ size = 22, clickable = true, testId = "imta-logo" }) {
+export function Logo({ size = 28, clickable = true, testId = "imta-logo" }) {
   const navigate = useNavigate();
+  const [broken, setBroken] = useState(false);
 
-  const wordmark = (
+  const content = broken ? (
     <span
       style={{
         fontFamily: "'Inter', sans-serif",
-        fontSize: `${size}px`,
+        fontSize: `${Math.round(size * 0.78)}px`,
         fontWeight: 800,
         fontStyle: "italic",
         color: "#4DB8A8",
@@ -28,12 +35,19 @@ export function Logo({ size = 22, clickable = true, testId = "imta-logo" }) {
     >
       i<span style={{ color: "#2E8B7A" }}>MTA</span>
     </span>
+  ) : (
+    <img
+      src={LOGO_URL}
+      alt="iMTA"
+      onError={() => setBroken(true)}
+      style={{ height: size, width: "auto", display: "block" }}
+    />
   );
 
   if (!clickable) {
     return (
       <div data-testid={testId} style={{ display: "inline-flex" }}>
-        {wordmark}
+        {content}
       </div>
     );
   }
@@ -46,7 +60,7 @@ export function Logo({ size = 22, clickable = true, testId = "imta-logo" }) {
       data-testid={testId}
       aria-label="Go to dashboard"
     >
-      {wordmark}
+      {content}
     </button>
   );
 }

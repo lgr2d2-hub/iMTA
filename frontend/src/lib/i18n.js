@@ -20,7 +20,7 @@ export const LANGUAGES = [
 // but every key is present in every locale so the UI never falls back to empty strings.
 const T = {
   ko: {
-    app_name: "이민자 타임", app_tagline: "흩어진 경험을 연결된 지식으로",
+    app_name: "iMTA", app_tagline: "흩어진 경험을 연결된 지식으로",
     welcome: "환영합니다", welcome_sub: "이민자 타임에서 필요한 정보와 커뮤니티를 만나보세요",
     nav_dashboard: "대시보드", nav_board: "게시판", nav_lifeinfo: "정보생활", nav_petitions: "청원", nav_reviews: "리뷰",
     sign_in: "Google로 시작하기", logout: "로그아웃", signing_in: "로그인 중...",
@@ -110,7 +110,7 @@ const T = {
     translation_fallback: "(번역을 불러올 수 없어 원문으로 표시됩니다)",
   },
   en: {
-    app_name: "Immigrants Time", app_tagline: "From scattered experiences to connected knowledge",
+    app_name: "iMTA", app_tagline: "From scattered experiences to connected knowledge",
     welcome: "Welcome", welcome_sub: "Find the info and community you need in Korea",
     nav_dashboard: "Dashboard", nav_board: "Community", nav_lifeinfo: "Life Info", nav_petitions: "Petitions", nav_reviews: "Reviews",
     sign_in: "Continue with Google", logout: "Log out", signing_in: "Signing in...",
@@ -200,7 +200,7 @@ const T = {
     translation_fallback: "(Showing original — translation unavailable)",
   },
   vi: {
-    app_name: "Thời gian Nhập cư", app_tagline: "Từ kinh nghiệm rời rạc đến kiến thức kết nối",
+    app_name: "iMTA", app_tagline: "Từ kinh nghiệm rời rạc đến kiến thức kết nối",
     welcome: "Chào mừng", welcome_sub: "Tìm thông tin và cộng đồng bạn cần ở Hàn Quốc",
     nav_dashboard: "Trang chính", nav_board: "Cộng đồng", nav_lifeinfo: "Thông tin", nav_petitions: "Kiến nghị", nav_reviews: "Đánh giá",
     sign_in: "Tiếp tục với Google", logout: "Đăng xuất", signing_in: "Đang đăng nhập...",
@@ -259,7 +259,7 @@ const T = {
     loading: "Đang tải...",
   },
   zh: {
-    app_name: "移民时间", app_tagline: "从零散经验到互联知识",
+    app_name: "iMTA", app_tagline: "从零散经验到互联知识",
     welcome: "欢迎", welcome_sub: "在韩国找到所需的信息和社区",
     nav_dashboard: "主页", nav_board: "社区", nav_lifeinfo: "生活信息", nav_petitions: "请愿", nav_reviews: "评论",
     sign_in: "使用Google继续", logout: "退出", signing_in: "登录中...",
@@ -318,7 +318,7 @@ const T = {
     loading: "加载中...",
   },
   ja: {
-    app_name: "イミグランツタイム", app_tagline: "散らばった経験をつながる知識へ",
+    app_name: "iMTA", app_tagline: "散らばった経験をつながる知識へ",
     welcome: "ようこそ", welcome_sub: "韓国で必要な情報とコミュニティを見つけよう",
     nav_dashboard: "ホーム", nav_board: "コミュニティ", nav_lifeinfo: "生活情報", nav_petitions: "請願", nav_reviews: "レビュー",
     sign_in: "Googleで続ける", logout: "ログアウト", signing_in: "ログイン中...",
@@ -377,7 +377,7 @@ const T = {
     loading: "読み込み中...",
   },
   fil: {
-    app_name: "Immigrants Time", app_tagline: "Mula sa hiwa-hiwalay na karanasan tungo sa konektadong kaalaman",
+    app_name: "iMTA", app_tagline: "Mula sa hiwa-hiwalay na karanasan tungo sa konektadong kaalaman",
     welcome: "Maligayang pagdating", welcome_sub: "Hanapin ang impormasyon at komunidad na kailangan mo sa Korea",
     nav_dashboard: "Dashboard", nav_board: "Komunidad", nav_lifeinfo: "Impormasyon", nav_petitions: "Petisyon", nav_reviews: "Review",
     sign_in: "Magpatuloy sa Google", logout: "Mag-logout", signing_in: "Nagla-log in...",
@@ -436,7 +436,7 @@ const T = {
     loading: "Naglo-load...",
   },
   km: {
-    app_name: "ពេលអ្នកនិរទេស", app_tagline: "ពីបទពិសោធន៍ខ្ចាត់ខ្ចាយទៅជាចំណេះដឹងភ្ជាប់",
+    app_name: "iMTA", app_tagline: "ពីបទពិសោធន៍ខ្ចាត់ខ្ចាយទៅជាចំណេះដឹងភ្ជាប់",
     welcome: "សូមស្វាគមន៍", welcome_sub: "ស្វែងរកព័ត៌មាននិងសហគមន៍នៅកូរ៉េ",
     nav_dashboard: "ផ្ទាំងគ្រប់គ្រង", nav_board: "សហគមន៍", nav_lifeinfo: "ព័ត៌មាន", nav_petitions: "ញែស", nav_reviews: "ការវាយតម្លៃ",
     sign_in: "បន្តជាមួយ Google", logout: "ចេញ", signing_in: "កំពុងចូល...",
@@ -495,7 +495,7 @@ const T = {
     loading: "កំពុង​ផ្ទុក...",
   },
   th: {
-    app_name: "เวลาผู้อพยพ", app_tagline: "จากประสบการณ์กระจัดกระจายสู่ความรู้ที่เชื่อมโยง",
+    app_name: "iMTA", app_tagline: "จากประสบการณ์กระจัดกระจายสู่ความรู้ที่เชื่อมโยง",
     welcome: "ยินดีต้อนรับ", welcome_sub: "ค้นหาข้อมูลและชุมชนในเกาหลี",
     nav_dashboard: "หน้าหลัก", nav_board: "ชุมชน", nav_lifeinfo: "ข้อมูล", nav_petitions: "คำร้อง", nav_reviews: "รีวิว",
     sign_in: "ดำเนินการต่อด้วย Google", logout: "ออกจากระบบ", signing_in: "กำลังเข้าสู่ระบบ...",
@@ -554,7 +554,7 @@ const T = {
     loading: "กำลังโหลด...",
   },
   mn: {
-    app_name: "Цагаачдын Цаг", app_tagline: "Тарангуй туршлагаас холбогдсон мэдлэг рүү",
+    app_name: "iMTA", app_tagline: "Тарангуй туршлагаас холбогдсон мэдлэг рүү",
     welcome: "Тавтай морил", welcome_sub: "Солонгост хэрэгтэй мэдээлэл, нийгэмлэгийг олоорой",
     nav_dashboard: "Үндсэн", nav_board: "Нийгэмлэг", nav_lifeinfo: "Мэдээлэл", nav_petitions: "Өргөдөл", nav_reviews: "Үнэлгээ",
     sign_in: "Google-р үргэлжлүүлэх", logout: "Гарах", signing_in: "Нэвтэрч байна...",
@@ -613,7 +613,7 @@ const T = {
     loading: "Уншиж байна...",
   },
   ru: {
-    app_name: "Время Иммигранта", app_tagline: "От разрозненного опыта к связанным знаниям",
+    app_name: "iMTA", app_tagline: "От разрозненного опыта к связанным знаниям",
     welcome: "Добро пожаловать", welcome_sub: "Найдите нужную информацию и сообщество в Корее",
     nav_dashboard: "Главная", nav_board: "Сообщество", nav_lifeinfo: "Информация", nav_petitions: "Петиции", nav_reviews: "Отзывы",
     sign_in: "Продолжить с Google", logout: "Выйти", signing_in: "Вход...",
@@ -672,7 +672,7 @@ const T = {
     loading: "Загрузка...",
   },
   uz: {
-    app_name: "Muhojirlar Vaqti", app_tagline: "Tarqoq tajribalardan bog'langan bilimga",
+    app_name: "iMTA", app_tagline: "Tarqoq tajribalardan bog'langan bilimga",
     welcome: "Xush kelibsiz", welcome_sub: "Koreyada kerakli ma'lumot va jamoani toping",
     nav_dashboard: "Asosiy", nav_board: "Jamoa", nav_lifeinfo: "Ma'lumot", nav_petitions: "Petitsiyalar", nav_reviews: "Sharhlar",
     sign_in: "Google bilan davom etish", logout: "Chiqish", signing_in: "Kirish...",
