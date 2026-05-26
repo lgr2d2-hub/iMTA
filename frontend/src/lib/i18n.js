@@ -87,6 +87,21 @@ const T = {
     save_settings: "저장하기",
     account_section: "계정",
     language_section: "언어",
+    // Reviews validation
+    select_review_category: "카테고리를 선택해주세요",
+    enter_place_name: "장소 이름을 입력해주세요",
+    review_too_short: "리뷰는 최소 50자 이상 입력해주세요",
+    // Chat lobby sections + channel creation
+    section_global: "🌍 글로벌",
+    section_country: "🏳️ 내 나라",
+    section_interest: "💬 관심사",
+    create_channel: "채팅방 만들기",
+    no_interest_channels: "아직 채팅방이 없어요. 첫 번째 채팅방을 만들어보세요!",
+    channel_name: "채팅방 이름",
+    channel_name_ph: "예) 강남 직장인 모임",
+    channel_name_too_short: "채팅방 이름은 최소 2자 이상이어야 합니다",
+    channel_desc_ph: "채팅방을 간단히 소개해주세요 (선택)",
+    pick_emoji: "이모지 선택",
   },
   en: {
     app_name: "Immigrants Time", app_tagline: "From scattered experiences to connected knowledge",
@@ -156,6 +171,21 @@ const T = {
     save_settings: "Save",
     account_section: "Account",
     language_section: "Language",
+    // Reviews validation
+    select_review_category: "Please select a category",
+    enter_place_name: "Please enter the place name",
+    review_too_short: "Review must be at least 50 characters",
+    // Chat lobby sections + channel creation
+    section_global: "🌍 Global",
+    section_country: "🏳️ My country",
+    section_interest: "💬 Interests",
+    create_channel: "Create channel",
+    no_interest_channels: "No interest channels yet. Be the first to create one!",
+    channel_name: "Channel name",
+    channel_name_ph: "e.g. Gangnam workers meetup",
+    channel_name_too_short: "Channel name must be at least 2 characters",
+    channel_desc_ph: "Briefly describe the channel (optional)",
+    pick_emoji: "Pick an emoji",
   },
   vi: {
     app_name: "Thời gian Nhập cư", app_tagline: "Từ kinh nghiệm rời rạc đến kiến thức kết nối",

@@ -23,6 +23,15 @@ export function NotificationProvider({ children }) {
 
   useEffect(() => { refresh(); }, [refresh]);
 
+  // Poll for new notifications every 30s while a user is logged in.
+  useEffect(() => {
+    if (!user) return undefined;
+    const id = setInterval(refresh, 30000);
+    const onVisible = () => { if (document.visibilityState === "visible") refresh(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => { clearInterval(id); document.removeEventListener("visibilitychange", onVisible); };
+  }, [user, refresh]);
+
   const markAllRead = useCallback(async () => {
     try { await api.post("/notifications/read-all"); } catch (e) { console.error("read-all:", e); }
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));

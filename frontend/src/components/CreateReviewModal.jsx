@@ -24,15 +24,23 @@ export function CreateReviewModal({ open, onOpenChange }) {
 
   const submit = async () => {
     if (!user) { toast.error(t("login_required")); return; }
-    if (!category || !placeName.trim() || content.trim().length < 50) { toast.error(t("error")); return; }
+    if (!category) { toast.error(t("select_review_category")); return; }
+    if (!placeName.trim()) { toast.error(t("enter_place_name")); return; }
+    if (content.trim().length < 50) { toast.error(t("review_too_short")); return; }
     setBusy(true);
     try {
-      await api.post("/reviews", { category, place_name: placeName.trim(), rating, content: content.trim(), is_anonymous: anon });
+      const { data } = await api.post("/reviews", {
+        category, place_name: placeName.trim(), rating, content: content.trim(), is_anonymous: anon,
+      });
       toast.success(t("success"));
       reset();
       onOpenChange(false);
-      window.dispatchEvent(new Event("imta:reviews-updated"));
-    } catch { toast.error(t("error")); } finally { setBusy(false); }
+      // Pass the new review's category so the list page switches tab + refreshes.
+      window.dispatchEvent(new CustomEvent("imta:reviews-updated", { detail: { category: data?.category || category } }));
+    } catch (e) {
+      const msg = e?.response?.data?.detail || t("error");
+      toast.error(typeof msg === "string" ? msg : t("error"));
+    } finally { setBusy(false); }
   };
 
   return (
@@ -56,6 +64,7 @@ export function CreateReviewModal({ open, onOpenChange }) {
             </div>
           </div>
           <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder={t("review_ph")} className="w-full px-3 py-2 rounded-lg border bg-white text-sm outline-none min-h-[120px]" data-testid="review-content-input" />
+          <div className="text-[11px] text-right text-gray-400" data-testid="review-char-count">{content.trim().length}/50</div>
           <div className="flex items-center justify-between"><span className="text-sm">{t("anonymous")}</span><Switch checked={anon} onCheckedChange={setAnon} data-testid="review-anon-switch" /></div>
         </div>
         <DialogFooter>

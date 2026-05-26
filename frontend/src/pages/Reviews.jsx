@@ -23,10 +23,14 @@ export default function Reviews() {
   useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
-    const refresh = () => load();
+    const refresh = (e) => {
+      const nextCat = e?.detail?.category;
+      if (nextCat && nextCat !== category) setCategory(nextCat);
+      else load();
+    };
     window.addEventListener("imta:reviews-updated", refresh);
     return () => window.removeEventListener("imta:reviews-updated", refresh);
-  }, [load]);
+  }, [load, category]);
 
   return (
     <div className="px-4 py-4 fade-up" data-testid="reviews-page">

@@ -1,21 +1,55 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "./ui/sheet";
 import { useLang } from "../context/LanguageContext";
+import { useAuth } from "../context/AuthContext";
 import api from "../lib/api";
-import { Send, ArrowLeft } from "lucide-react";
+import { Send, ArrowLeft, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { CreateChannelModal } from "./CreateChannelModal";
+
+function ChannelRow({ c, onClick, t }) {
+  return (
+    <button
+      data-testid={`channel-${c.channel_id}`}
+      onClick={onClick}
+      className="w-full flex items-center gap-3 p-3 mx-2 my-1 rounded-xl hover:bg-gray-50 text-left"
+    >
+      <div className="w-10 h-10 rounded-full bg-imta-light flex items-center justify-center text-xl">{c.icon || "💬"}</div>
+      <div className="flex-1 min-w-0">
+        <div className="font-semibold text-sm truncate">{c.name}</div>
+        <div className="text-xs text-gray-500 truncate">
+          {c.description ? c.description : `${(c.member_count || 0).toLocaleString()} ${t("members")}`}
+        </div>
+      </div>
+      <span className="text-xs px-2 py-1 rounded-full bg-imta text-white font-medium">{t("join")}</span>
+    </button>
+  );
+}
+
+function SectionHeader({ label, count }) {
+  return (
+    <div className="px-4 pt-4 pb-1 flex items-center justify-between">
+      <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</div>
+      <div className="text-[10px] text-gray-400">{count}</div>
+    </div>
+  );
+}
 
 export function ChatLobby({ open, onOpenChange }) {
   const { t } = useLang();
+  const { user } = useAuth();
   const [channels, setChannels] = useState([]);
   const [active, setActive] = useState(null);
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
   const scrollRef = useRef(null);
+
+  const loadChannels = () => api.get("/chat/channels").then(({ data }) => setChannels(data || [])).catch(() => {});
 
   useEffect(() => {
     if (!open) return;
-    api.get("/chat/channels").then(({ data }) => setChannels(data || [])).catch(() => {});
+    loadChannels();
   }, [open]);
 
   useEffect(() => {
@@ -25,6 +59,17 @@ export function ChatLobby({ open, onOpenChange }) {
       setTimeout(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, 50);
     }).catch(() => setMessages([]));
   }, [active]);
+
+  // Group channels into Global / Country / Interest. Country shows only the
+  // user's own country channel; if their country has no dedicated channel,
+  // the section is hidden.
+  const { globalCh, countryCh, interestCh } = useMemo(() => {
+    const userCC = (user?.country_code || "").toUpperCase();
+    const g = channels.filter((c) => c.channel_type === "global");
+    const co = channels.filter((c) => c.channel_type === "country" && (c.country_code || "").toUpperCase() === userCC);
+    const i = channels.filter((c) => c.channel_type === "interest");
+    return { globalCh: g, countryCh: co, interestCh: i };
+  }, [channels, user]);
 
   const send = async () => {
     if (!text.trim() || !active) return;
@@ -38,6 +83,11 @@ export function ChatLobby({ open, onOpenChange }) {
     }
   };
 
+  const handleCreated = (ch) => {
+    setChannels((prev) => [ch, ...prev]);
+    setActive(ch);
+  };
+
   return (
     <Sheet open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) setActive(null); }}>
       <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl p-0 flex flex-col" data-testid="chat-lobby">
@@ -46,24 +96,47 @@ export function ChatLobby({ open, onOpenChange }) {
             <SheetHeader className="px-4 pt-4 pb-2">
               <SheetTitle className="text-lg">{t("chat_lobby")}</SheetTitle>
             </SheetHeader>
-            <div className="flex-1 overflow-auto px-2 pb-6">
-              {channels.map((c) => (
+            <div className="flex-1 overflow-auto pb-6">
+              {/* Global */}
+              {globalCh.length > 0 && (
+                <>
+                  <SectionHeader label={t("section_global")} count={globalCh.length} />
+                  {globalCh.map((c) => (
+                    <ChannelRow key={c.channel_id} c={c} t={t} onClick={() => setActive(c)} />
+                  ))}
+                </>
+              )}
+
+              {/* Country (filtered by user's country_code) */}
+              {countryCh.length > 0 && (
+                <>
+                  <SectionHeader label={t("section_country")} count={countryCh.length} />
+                  {countryCh.map((c) => (
+                    <ChannelRow key={c.channel_id} c={c} t={t} onClick={() => setActive(c)} />
+                  ))}
+                </>
+              )}
+
+              {/* Interest */}
+              <div className="px-4 pt-4 pb-1 flex items-center justify-between">
+                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t("section_interest")}</div>
                 <button
-                  key={c.channel_id}
-                  data-testid={`channel-${c.channel_id}`}
-                  onClick={() => setActive(c)}
-                  className="w-full flex items-center gap-3 p-3 mx-2 my-1 rounded-xl hover:bg-gray-50 text-left"
+                  onClick={() => setCreateOpen(true)}
+                  className="text-xs px-2.5 py-1 rounded-full bg-imta text-white font-medium flex items-center gap-1"
+                  data-testid="create-channel-btn"
                 >
-                  <div className="w-10 h-10 rounded-full bg-imta-light flex items-center justify-center text-xl">
-                    {c.icon}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-sm truncate">{c.name}</div>
-                    <div className="text-xs text-gray-500">{(c.member_count || 0).toLocaleString()} {t("members")}</div>
-                  </div>
-                  <span className="text-xs px-2 py-1 rounded-full bg-imta text-white font-medium">{t("join")}</span>
+                  <Plus size={12} /> {t("create_channel")}
                 </button>
-              ))}
+              </div>
+              {interestCh.length === 0 ? (
+                <div className="px-4 py-6 text-center text-xs text-gray-400" data-testid="interest-empty">
+                  {t("no_interest_channels")}
+                </div>
+              ) : (
+                interestCh.map((c) => (
+                  <ChannelRow key={c.channel_id} c={c} t={t} onClick={() => setActive(c)} />
+                ))
+              )}
             </div>
           </>
         ) : (
@@ -92,7 +165,7 @@ export function ChatLobby({ open, onOpenChange }) {
                 </div>
               ))}
               {messages.length === 0 && (
-                <div className="text-center text-gray-400 text-sm py-8">{t("no_comments") /* reuse */}</div>
+                <div className="text-center text-gray-400 text-sm py-8">{t("no_comments")}</div>
               )}
             </div>
             <div className="p-3 border-t bg-white flex items-center gap-2">
@@ -114,6 +187,8 @@ export function ChatLobby({ open, onOpenChange }) {
             </div>
           </>
         )}
+
+        <CreateChannelModal open={createOpen} onOpenChange={setCreateOpen} onCreated={handleCreated} />
       </SheetContent>
     </Sheet>
   );

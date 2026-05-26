@@ -82,6 +82,7 @@ class ChatMessageCreate(BaseModel):
 class ChannelCreate(BaseModel):
     name: str
     description: Optional[str] = ""
+    icon: Optional[str] = "💬"
 
 
 # ============================================================
@@ -604,7 +605,7 @@ async def create_channel(payload: ChannelCreate, user: Dict[str, Any] = Depends(
         "channel_id": f"ch_{uuid.uuid4().hex[:10]}",
         "name": payload.name,
         "description": payload.description or "",
-        "icon": "💬",
+        "icon": payload.icon or "💬",
         "channel_type": "interest",
         "country_code": None,
         "is_default": False,

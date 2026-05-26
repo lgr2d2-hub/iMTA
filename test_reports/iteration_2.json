@@ -1,0 +1,56 @@
+{
+  "summary": "Validated all 3 P0 fixes (Review submit flow, Notification fan-out + polling, ChatLobby 3-section restructure + CreateChannelModal). Backend: 22/22 pytest pass (15 regression + 7 new P0 tests). Frontend: ChatLobby sections render correctly, VN user country filter works (only ch_vn visible), emoji-grid selection highlight works, channel_name_too_short toast triggers in Korean, valid create auto-opens new channel, reviews-updated custom event switches tab correctly, /notifications polled on mount + visibility.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/notifications", "issue": "Auto-seeds 3 demo notifications for empty users; ok for MVP but real notifications may be diluted by the seed batch."},
+      {"endpoint": "POST /api/chat/channels/{id}/messages", "issue": "When no chat_members rows exist, notification fan-out falls back to channel.created_by only — global/country channels (no members) will silently skip all subscribers. Acceptable for MVP but flag for scale."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "ChatLobby section header", "issues": ["Section count badge next to label always shows raw channel count (e.g. '내 나라 1') — minor UX; consider hiding when count <= 1."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_imta_backend.py",
+    "/app/backend/tests/test_imta_p0_fixes.py",
+    "/app/test_reports/pytest/pytest_results.xml",
+    "/app/test_reports/pytest/p0_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py now 922 lines — strongly recommend splitting into routers (auth, posts, petitions, reviews, chat, notifications, translate) and a seed module before further feature work.",
+    "Notification fan-out for chat depends on chat_members rows; the seed data populates default channels but never inserts member rows for them, so messages in ch_global/ch_vn/etc. notify only the channel.created_by (None for seeds → zero notifications). Consider auto-joining users on channel open or storing membership lazily.",
+    "push_notification swallows insert exceptions with a warning — fine for resilience but make sure ops dashboards surface these rates.",
+    "CreateChannelModal: channel created via POST always sets channel_type='interest' server-side, ignoring any client request — good design but undocumented in the API contract.",
+    "Reviews.jsx useEffect for imta:reviews-updated re-registers listener whenever category changes (deps include category+load). Works but could be simplified by using a ref for current category to avoid re-binding."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_imta_p0_fixes.py (new)",
+    "/app/backend/tests/test_imta_backend.py (loosened drift-sensitive assertions for petition counts + default channel count)"
+  ],
+  "success_rate": {"backend": "100% (22/22)", "frontend": "100% on tested flows"},
+  "test_credentials": "session_token=test_session_1779718769701 (테스트 user, country_code=VN, onboarded). Auth via Cookie or Authorization: Bearer.",
+  "seed_data_creation": "Test channels and reviews with TEST_ prefix created during pytest run; not cleaned up but isolated by prefix.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All 3 P0 fixes pass backend + UI verification. Pytest suite at /app/backend/tests/test_imta_p0_fixes.py covers: review POST shape, chat channel icon persistence, country channel VN presence, comment/signature/chat self-notification suppression, core endpoint regression. Frontend tested at viewport 390x844. Key testids: fab-chat-lobby, chat-lobby, create-channel-btn, create-channel-modal, emoji-grid, emoji-{char}, channel-name-input, channel-desc-input, channel-submit-btn, chat-back, chat-input, review-cat-{id}, channel-ch_vn. Custom event `imta:reviews-updated` with detail.category switches Review tab correctly.",
+  "tested_features": [
+    "POST /api/reviews returns review_id, category, place_name, rating, content, author (nickname=테스트) — verified",
+    "POST /api/chat/channels persists icon (🚴) and returns it on subsequent GET — verified",
+    "Channel from POST has channel_type='interest', country_code=null — verified",
+    "Comment on others' post: no self-notification leaked for commenter — verified",
+    "Self-sign on own petition: no signature self-notification — verified",
+    "Self chat message in own channel: no chat self-notification — verified",
+    "GET /api/notifications, /auth/me, /posts, /petitions, /reviews, /chat/channels all 200 — verified",
+    "ChatLobby renders Global, Country (only VN for test user), Interest sections with create button — verified",
+    "CreateChannelModal: emoji grid 30 chars, click selects (bg-imta highlight) — verified",
+    "Name < 2 chars triggers toast '채팅방 이름은 최소 2자 이상이어야 합니다' — verified",
+    "Valid create closes modal and auto-opens chat window (chat-back+chat-input visible) — verified",
+    "Reviews page: dispatching imta:reviews-updated event switches active category tab — verified",
+    "NotificationContext: 2 /notifications fetches observed within ~5s (mount + visibilitychange). 30s setInterval verified in source."
+  ]
+}
