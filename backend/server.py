@@ -257,6 +257,26 @@ async def author_info(user_id: str, is_anonymous: bool = False) -> Dict[str, str
     }
 
 
+async def push_notification(*, user_id: str, n_type: str, title: str, body: str, **extras) -> None:
+    """Insert a notification row for `user_id`. No-op if user_id is empty/None."""
+    if not user_id:
+        return
+    doc = {
+        "notification_id": f"n_{uuid.uuid4().hex[:8]}",
+        "user_id": user_id,
+        "type": n_type,
+        "title": title,
+        "body": body,
+        "read": False,
+        "created_at": now_iso(),
+        **extras,
+    }
+    try:
+        await db.notifications.insert_one(doc)
+    except Exception as e:
+        logger.warning("notification push failed: %s", e)
+
+
 # ============================================================
 # Posts (Board)
 # ============================================================
@@ -374,6 +394,35 @@ async def add_comment(post_id: str, payload: CommentCreate, user: Dict[str, Any]
     await db.comments.insert_one(comment.copy())
     comment = clean(comment)
     comment["author"] = await author_info(user["user_id"], payload.is_anonymous)
+
+    # Notification triggers — fan out only to people who didn't write this comment.
+    post = await db.posts.find_one({"post_id": post_id}, {"_id": 0, "user_id": 1, "category_id": 1, "title": 1})
+    if post:
+        commenter_name = comment["author"].get("nickname") or "Someone"
+        notified: set = {user["user_id"]}
+        # 1) Notify post author about the new comment
+        if post["user_id"] not in notified:
+            await push_notification(
+                user_id=post["user_id"], n_type="comment",
+                title="내 글에 댓글이 달렸습니다",
+                body=f"{commenter_name}님이 댓글을 달았습니다",
+                post_id=post_id, category_id=post.get("category_id", ""),
+            )
+            notified.add(post["user_id"])
+        # 2) Notify everyone who previously commented on this post ("reply" notification)
+        prior = await db.comments.find(
+            {"post_id": post_id, "user_id": {"$nin": list(notified)}}, {"_id": 0, "user_id": 1}
+        ).to_list(200)
+        for c in prior:
+            uid = c.get("user_id")
+            if uid and uid not in notified:
+                await push_notification(
+                    user_id=uid, n_type="reply",
+                    title="내 댓글에 답장",
+                    body=f"{commenter_name}님이 답장했습니다",
+                    post_id=post_id, category_id=post.get("category_id", ""),
+                )
+                notified.add(uid)
     return comment
 
 
@@ -480,6 +529,14 @@ async def sign_petition(petition_id: str, user: Dict[str, Any] = Depends(get_cur
     )
     await db.petitions.update_one({"petition_id": petition_id}, {"$inc": {"signature_count": 1}})
     p = await db.petitions.find_one({"petition_id": petition_id}, {"_id": 0})
+    # Notify petition creator (skip self-signs)
+    if p and p.get("user_id") and p["user_id"] != user["user_id"]:
+        await push_notification(
+            user_id=p["user_id"], n_type="signature",
+            title="내 청원에 새 서명",
+            body="새로운 서명이 추가되었습니다",
+            petition_id=petition_id,
+        )
     return {"signature_count": p["signature_count"], "has_signed": True}
 
 
@@ -536,8 +593,8 @@ async def like_review(review_id: str, user: Dict[str, Any] = Depends(get_current
 # Chat
 # ============================================================
 @api.get("/chat/channels")
-async def list_channels():
-    items = await db.chat_channels.find({}, {"_id": 0}).sort("member_count", -1).to_list(200)
+async def list_channels(user: Optional[Dict[str, Any]] = Depends(get_optional_user)):
+    items = await db.chat_channels.find({}, {"_id": 0}).sort("member_count", -1).to_list(500)
     return items
 
 
@@ -548,13 +605,30 @@ async def create_channel(payload: ChannelCreate, user: Dict[str, Any] = Depends(
         "name": payload.name,
         "description": payload.description or "",
         "icon": "💬",
+        "channel_type": "interest",
+        "country_code": None,
         "is_default": False,
         "member_count": 1,
         "created_by": user["user_id"],
         "created_at": now_iso(),
     }
     await db.chat_channels.insert_one(ch.copy())
+    # Auto-join creator
+    await db.chat_members.insert_one(
+        {"channel_id": ch["channel_id"], "user_id": user["user_id"], "created_at": now_iso()}
+    )
     return clean(ch)
+
+
+@api.post("/chat/channels/{channel_id}/join")
+async def join_channel(channel_id: str, user: Dict[str, Any] = Depends(get_current_user)):
+    existing = await db.chat_members.find_one({"channel_id": channel_id, "user_id": user["user_id"]}, {"_id": 0})
+    if not existing:
+        await db.chat_members.insert_one(
+            {"channel_id": channel_id, "user_id": user["user_id"], "created_at": now_iso()}
+        )
+        await db.chat_channels.update_one({"channel_id": channel_id}, {"$inc": {"member_count": 1}})
+    return {"joined": True}
 
 
 @api.get("/chat/channels/{channel_id}/messages")
@@ -577,6 +651,23 @@ async def post_message(channel_id: str, payload: ChatMessageCreate, user: Dict[s
     await db.chat_messages.insert_one(msg.copy())
     msg = clean(msg)
     msg["author"] = await author_info(user["user_id"], False)
+
+    # Notify other members (or channel creator if no member tracking yet)
+    channel = await db.chat_channels.find_one({"channel_id": channel_id}, {"_id": 0})
+    if channel:
+        members = await db.chat_members.find(
+            {"channel_id": channel_id, "user_id": {"$ne": user["user_id"]}}, {"_id": 0, "user_id": 1}
+        ).to_list(500)
+        targets = [m["user_id"] for m in members]
+        if not targets and channel.get("created_by") and channel["created_by"] != user["user_id"]:
+            targets = [channel["created_by"]]
+        for uid in targets[:50]:  # cap to avoid notification storms
+            await push_notification(
+                user_id=uid, n_type="chat",
+                title="새 채팅 메시지",
+                body=f"{channel.get('name', '채널')}에 새 메시지가 있습니다",
+                channel_id=channel_id,
+            )
     return msg
 
 
@@ -734,16 +825,26 @@ SEED_REVIEWS = [
 ]
 
 SEED_CHANNELS = [
-    {"channel_id": "ch_global", "name": "🌍 Global", "description": "All immigrants welcome", "icon": "🌍", "is_default": True, "member_count": 34821},
-    {"channel_id": "ch_vn", "name": "🇻🇳 Vietnam", "description": "Cộng đồng Việt Nam tại Hàn Quốc", "icon": "🇻🇳", "is_default": True, "member_count": 8234},
-    {"channel_id": "ch_cn", "name": "🇨🇳 China", "description": "在韩中国人社区", "icon": "🇨🇳", "is_default": True, "member_count": 6102},
-    {"channel_id": "ch_ph", "name": "🇵🇭 Philippines", "description": "Pinoy community in Korea", "icon": "🇵🇭", "is_default": True, "member_count": 3456},
-    {"channel_id": "ch_kh", "name": "🇰🇭 Cambodia", "description": "សហគមន៍ខ្មែរនៅកូរ៉េ", "icon": "🇰🇭", "is_default": True, "member_count": 2891},
-    {"channel_id": "ch_mn", "name": "🇲🇳 Mongolia", "description": "Солонгос дахь Монгол", "icon": "🇲🇳", "is_default": True, "member_count": 2103},
-    {"channel_id": "ch_20s", "name": "20s only lol", "description": "Only for our young immigrants", "icon": "🎉", "is_default": False, "member_count": 2349},
-    {"channel_id": "ch_married", "name": "Married migrants? Join in!", "description": "Married immigrants community", "icon": "💍", "is_default": False, "member_count": 34827},
-    {"channel_id": "ch_seoul_worker", "name": "서울 직장인 모임", "description": "Seoul workers meetup", "icon": "💼", "is_default": False, "member_count": 1203},
-    {"channel_id": "ch_students", "name": "유학생 모임", "description": "International students hub", "icon": "📚", "is_default": False, "member_count": 4567},
+    {"channel_id": "ch_global", "name": "🌍 Global", "description": "All immigrants welcome", "icon": "🌍", "channel_type": "global", "country_code": None, "is_default": True, "member_count": 34821},
+    {"channel_id": "ch_vn", "name": "🇻🇳 Vietnam", "description": "Cộng đồng Việt Nam tại Hàn Quốc", "icon": "🇻🇳", "channel_type": "country", "country_code": "VN", "is_default": True, "member_count": 8234},
+    {"channel_id": "ch_cn", "name": "🇨🇳 China", "description": "在韩中国人社区", "icon": "🇨🇳", "channel_type": "country", "country_code": "CN", "is_default": True, "member_count": 6102},
+    {"channel_id": "ch_ph", "name": "🇵🇭 Philippines", "description": "Pinoy community in Korea", "icon": "🇵🇭", "channel_type": "country", "country_code": "PH", "is_default": True, "member_count": 3456},
+    {"channel_id": "ch_kh", "name": "🇰🇭 Cambodia", "description": "សហគមន៍ខ្មែរនៅកូរ៉េ", "icon": "🇰🇭", "channel_type": "country", "country_code": "KH", "is_default": True, "member_count": 2891},
+    {"channel_id": "ch_mn", "name": "🇲🇳 Mongolia", "description": "Солонгос дахь Монгол", "icon": "🇲🇳", "channel_type": "country", "country_code": "MN", "is_default": True, "member_count": 2103},
+    {"channel_id": "ch_ru", "name": "🇷🇺 Russia", "description": "Русскоязычное сообщество в Корее", "icon": "🇷🇺", "channel_type": "country", "country_code": "RU", "is_default": True, "member_count": 1842},
+    {"channel_id": "ch_jp", "name": "🇯🇵 Japan", "description": "韓国在住の日本人コミュニティ", "icon": "🇯🇵", "channel_type": "country", "country_code": "JP", "is_default": True, "member_count": 1633},
+    {"channel_id": "ch_th", "name": "🇹🇭 Thailand", "description": "ชุมชนคนไทยในเกาหลี", "icon": "🇹🇭", "channel_type": "country", "country_code": "TH", "is_default": True, "member_count": 1421},
+    {"channel_id": "ch_uz", "name": "🇺🇿 Uzbekistan", "description": "Koreyadagi O'zbek jamoasi", "icon": "🇺🇿", "channel_type": "country", "country_code": "UZ", "is_default": True, "member_count": 1284},
+    {"channel_id": "ch_np", "name": "🇳🇵 Nepal", "description": "Nepali community in Korea", "icon": "🇳🇵", "channel_type": "country", "country_code": "NP", "is_default": True, "member_count": 1156},
+    {"channel_id": "ch_mm", "name": "🇲🇲 Myanmar", "description": "Myanmar community in Korea", "icon": "🇲🇲", "channel_type": "country", "country_code": "MM", "is_default": True, "member_count": 982},
+    {"channel_id": "ch_id", "name": "🇮🇩 Indonesia", "description": "Komunitas Indonesia di Korea", "icon": "🇮🇩", "channel_type": "country", "country_code": "ID", "is_default": True, "member_count": 1342},
+    {"channel_id": "ch_in", "name": "🇮🇳 India", "description": "Indian community in Korea", "icon": "🇮🇳", "channel_type": "country", "country_code": "IN", "is_default": True, "member_count": 1098},
+    {"channel_id": "ch_bd", "name": "🇧🇩 Bangladesh", "description": "Bangladeshi community in Korea", "icon": "🇧🇩", "channel_type": "country", "country_code": "BD", "is_default": True, "member_count": 856},
+    {"channel_id": "ch_kz", "name": "🇰🇿 Kazakhstan", "description": "Қазақстандық қауымдастық Кореяда", "icon": "🇰🇿", "channel_type": "country", "country_code": "KZ", "is_default": True, "member_count": 612},
+    {"channel_id": "ch_20s", "name": "20s only lol", "description": "Only for our young immigrants", "icon": "🎉", "channel_type": "interest", "country_code": None, "is_default": False, "member_count": 2349},
+    {"channel_id": "ch_married", "name": "Married migrants? Join in!", "description": "Married immigrants community", "icon": "💍", "channel_type": "interest", "country_code": None, "is_default": False, "member_count": 34827},
+    {"channel_id": "ch_seoul_worker", "name": "서울 직장인 모임", "description": "Seoul workers meetup", "icon": "💼", "channel_type": "interest", "country_code": None, "is_default": False, "member_count": 1203},
+    {"channel_id": "ch_students", "name": "유학생 모임", "description": "International students hub", "icon": "🎓", "channel_type": "interest", "country_code": None, "is_default": False, "member_count": 4567},
 ]
 
 SEED_CHAT_MESSAGES = [
@@ -779,7 +880,9 @@ async def seed_database():
             doc = {**r, "created_at": (datetime.now(timezone.utc) - timedelta(days=SEED_REVIEWS.index(r) + 2)).isoformat()}
             await db.reviews.insert_one(doc)
 
-    if await db.chat_channels.count_documents({}) == 0:
+    if await db.chat_channels.count_documents({"channel_type": {"$exists": True}}) == 0:
+        # Migrate: clear old channels lacking the new schema, then reseed.
+        await db.chat_channels.delete_many({"channel_type": {"$exists": False}})
         for c in SEED_CHANNELS:
             await db.chat_channels.insert_one({**c, "created_at": now_iso()})
 
