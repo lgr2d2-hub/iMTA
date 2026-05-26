@@ -6,6 +6,8 @@ import { useAuth } from "../context/AuthContext";
 import { BOARD_CATEGORIES } from "../lib/constants";
 import { catLabel } from "../lib/i18n";
 import { timeAgo } from "../lib/translate";
+import { useAutoTranslateList } from "../lib/useAutoTranslate";
+import { TitleShimmer } from "../components/Shimmer";
 import api from "../lib/api";
 import { Eye, MessageCircle, ThumbsUp, Search } from "lucide-react";
 
@@ -20,6 +22,13 @@ export default function Board() {
     api.get("/posts").then(({ data }) => setAllPosts(data || [])).catch(() => setAllPosts([]));
   }, []);
 
+  // Auto-translate every post title once for non-KR users. Cached per id+lang
+  // in localStorage so subsequent visits cost zero API calls.
+  const { map: titleMap, loading: titleLoading, failed: titleFailed, active } =
+    useAutoTranslateList(allPosts, "post_id", "title");
+
+  const titleFor = (p) => (active && titleMap[p.post_id]) || p.title;
+
   const postsByCat = useMemo(() => {
     const grouped = {};
     allPosts.forEach((p) => {
@@ -33,15 +42,22 @@ export default function Board() {
   const searchResults = useMemo(() => {
     if (!searching) return [];
     const q = query.toLowerCase();
-    return allPosts.filter(
-      (p) => p.title.toLowerCase().includes(q) || p.content.toLowerCase().includes(q),
-    );
-  }, [allPosts, query, searching]);
+    return allPosts.filter((p) => {
+      const translated = titleMap[p.post_id] || "";
+      return (
+        p.title.toLowerCase().includes(q) ||
+        p.content.toLowerCase().includes(q) ||
+        translated.toLowerCase().includes(q)
+      );
+    });
+  }, [allPosts, query, searching, titleMap]);
 
   const userChips = user ? [user.country_flag, user.district, user.occupation].filter(Boolean) : [];
 
   const goPost = (p) => navigate(`/board/${p.category_id}/${p.post_id}`);
   const catFor = (id) => BOARD_CATEGORIES.find((c) => c.id === id);
+
+  const showShimmer = (p) => active && titleLoading && !titleMap[p.post_id];
 
   return (
     <div className="px-4 py-4 fade-up" data-testid="board-page">
@@ -52,6 +68,11 @@ export default function Board() {
             {userChips.map((c) => (
               <span key={c} className="imta-chip">{c}</span>
             ))}
+          </div>
+        )}
+        {active && titleFailed && (
+          <div className="text-[11px] text-gray-400 mt-1.5" data-testid="board-translate-fallback">
+            {t("translation_fallback")}
           </div>
         )}
       </div>
@@ -82,7 +103,9 @@ export default function Board() {
                   className="w-full text-left imta-card p-3"
                   data-testid={`search-result-${p.post_id}`}
                 >
-                  <div className="font-semibold text-sm line-clamp-2">{p.title}</div>
+                  <div className="font-semibold text-sm line-clamp-2">
+                    {showShimmer(p) ? <TitleShimmer /> : titleFor(p)}
+                  </div>
                   <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                     {cat && <span className="imta-chip">{cat.icon} {catLabel(cat, lang, "board")}</span>}
                     <span className="text-xs text-gray-500">{p.author?.country_flag} {p.author?.nickname}</span>
@@ -122,7 +145,9 @@ export default function Board() {
                         className="w-full text-left p-3 rounded-lg hover:bg-gray-50 border border-gray-100"
                         data-testid={`post-card-${p.post_id}`}
                       >
-                        <div className="font-semibold text-sm line-clamp-2">{p.title}</div>
+                        <div className="font-semibold text-sm line-clamp-2">
+                          {showShimmer(p) ? <TitleShimmer /> : titleFor(p)}
+                        </div>
                         <div className="text-xs text-gray-500 mt-1 flex items-center gap-2 flex-wrap">
                           <span>{p.author?.country_flag} {p.author?.nickname}</span>
                           <span>·</span>

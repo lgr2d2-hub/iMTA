@@ -1,16 +1,15 @@
 import api from "./api";
 
 const CACHE_KEY = "imta_translation_cache_v1";
+const SEP = " ||| ";
 
 // Map a user's registered country code to the target translation language code.
-// Codes are the MyMemory / ISO-639-1 codes used by the backend translation proxy.
 export const COUNTRY_TO_LANG = {
   VN: "vi", CN: "zh", JP: "ja", PH: "tl", KH: "km", TH: "th",
   MN: "mn", RU: "ru", UZ: "uz", NP: "ne", MM: "my", ID: "id",
   BD: "bn", KZ: "kk", KR: "ko",
 };
 
-// Human-readable display names for the translate button label.
 export const LANG_DISPLAY = {
   vi: "Tiếng Việt", zh: "中文", ja: "日本語", tl: "Filipino",
   km: "ភាសាខ្មែរ", th: "ภาษาไทย", mn: "Монгол", ru: "Русский",
@@ -27,6 +26,11 @@ export function getTargetLangName(countryCode) {
   return LANG_DISPLAY[getTargetLang(countryCode)] || "English";
 }
 
+export function shouldAutoTranslate(countryCode) {
+  // Auto-translate for everyone EXCEPT Korean users.
+  return Boolean(countryCode) && countryCode.toUpperCase() !== "KR";
+}
+
 function loadCache() {
   try { return JSON.parse(localStorage.getItem(CACHE_KEY) || "{}"); }
   catch (e) { console.error("translation cache read:", e); return {}; }
@@ -37,15 +41,14 @@ function saveCache(cache) {
 }
 
 /**
- * Translate `text` from `source` to `target`. Returns translated string on success.
- * On empty/failure throws so callers can show a toast and revert UI.
- * `id` is used as a stable cache key per resource (e.g. `post_seed_1`).
+ * Translate a single block of text (used by detail pages for title/body).
+ * Throws on empty/failed translation so callers can show a fallback.
  */
 export async function translateBlock({ text, target, source = "ko", id }) {
   if (!text) return "";
   if (target === source) return text;
   const cache = loadCache();
-  const cacheKey = id ? `translation_${id}_${target}` : `text_${target}_${text.slice(0, 80)}`;
+  const cacheKey = id ? `trans_${id}_${target}` : `text_${target}_${text.slice(0, 80)}`;
   if (cache[cacheKey]) return cache[cacheKey];
   const { data } = await api.post("/translate", { text, target, source });
   const translated = (data?.translated || "").trim();
@@ -55,7 +58,49 @@ export async function translateBlock({ text, target, source = "ko", id }) {
   return translated;
 }
 
-// Backward-compatible helper used by older review/list views — returns original on failure.
+/**
+ * Batch-translate a list of {id, text} items in a single API call using a "|||"
+ * separator, with localStorage caching per item.
+ *
+ * Returns a map: { [id]: translated_text }.
+ * Items already present in cache are served without an API call.
+ * Throws if the API fails or if the response cannot be split back into the
+ * expected number of parts — callers should fall back to original text.
+ */
+export async function translateBatch({ items, target, source = "ko" }) {
+  if (!items?.length || !target || target === source) {
+    return Object.fromEntries((items || []).map((i) => [i.id, i.text]));
+  }
+  const cache = loadCache();
+  const result = {};
+  const pending = [];
+  items.forEach(({ id, text }) => {
+    const key = `trans_${id}_${target}`;
+    if (cache[key]) result[id] = cache[key];
+    else if ((text || "").trim()) pending.push({ id, text });
+    else result[id] = text || "";
+  });
+  if (pending.length === 0) return result;
+
+  const joined = pending.map((p) => p.text).join(SEP);
+  const { data } = await api.post("/translate", { text: joined, target, source });
+  const translated = (data?.translated || "").trim();
+  if (!translated) throw new Error("empty_translation");
+  // Translation engines sometimes collapse whitespace around the separator.
+  const parts = translated.split(/\s*\|\|\|\s*/);
+  if (parts.length !== pending.length) {
+    throw new Error(`split_mismatch_${parts.length}_vs_${pending.length}`);
+  }
+  pending.forEach((p, i) => {
+    const out = (parts[i] || "").trim() || p.text;
+    result[p.id] = out;
+    cache[`trans_${p.id}_${target}`] = out;
+  });
+  saveCache(cache);
+  return result;
+}
+
+// Backward-compatible helper used by older review/list views.
 export async function translateText(text, target, source = "ko") {
   try { return await translateBlock({ text, target, source }); }
   catch (e) { console.error("translateText:", e); return text; }

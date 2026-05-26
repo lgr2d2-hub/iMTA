@@ -1,0 +1,67 @@
+{
+  "summary": "Iteration 4 — auto-translate-on-load (no manual button). Backend regression 13/14 passed (1 known MyMemory long-repetitive-text edge fails). Frontend Playwright verified Board batch translate works (1 batch /api/translate call for visible titles), PostDetail+PetitionDetail title+body block-translate works (sequential translateBlock per field) with '(번역됨 / Translated)' italic label, toggle '원문 보기'↔'번역 보기' flips KO↔VI correctly, cache persisted to localStorage 'imta_translation_cache_v1' (11 keys after Board+PostDetail) and refresh used cache for cached items. SILENT FALLBACK works: testids petitions-translate-fallback, reviews-translate-fallback, comments-translate-fallback all render gray note '(번역을 불러올 수 없어 원문으로 표시됩니다)' AND original Korean remains visible. HOWEVER batch ||| translation FAILS on lists ≥~8 items because MyMemory free API drops/merges the separator: Petitions list (9 items → split_mismatch_8_vs_9), Reviews list (8 items → split_mismatch_1_vs_8), PostDetail comments (12 items → split_mismatch_11_vs_12). Users see Korean+gray note instead of translations on these three surfaces.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/translate", "issue": "MyMemory returns empty 'translated' for 1400-char repetitive input '안녕하세요 ' × 200 — pre-existing test failure carried from iter 3; not blocking real-world usage but the 2000-char cap doc claim is generous."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Petitions list auto-translate (VN user)",
+        "issue": "Batch ||| translate fails with split_mismatch_8_vs_9 because MyMemory ko→vi merges/drops separators across 9 segments. Fallback note shows and Korean titles render — but feature requirement (auto-translated titles) is NOT delivered.",
+        "affected_selectors": ["[data-testid='petitions-translate-fallback']", "[data-testid^='petition-card-']"]
+      },
+      {
+        "flow": "Reviews list auto-translate (VN user)",
+        "issue": "Batch ||| translate fails with split_mismatch_1_vs_8 — MyMemory returns translation as a single block. Fallback note shows; review bodies remain Korean. review-translated-label-<id> count = 0.",
+        "affected_selectors": ["[data-testid='reviews-translate-fallback']", "[data-testid^='review-translated-label-']"]
+      },
+      {
+        "flow": "PostDetail comments batch auto-translate (post_seed_1, 12 comments)",
+        "issue": "Batch ||| translate fails with split_mismatch_11_vs_12 — comments-translate-fallback note shows, comment-translated-label-<id> count = 0, comment-toggle-<id> count = 0. Title+body translation (sequential translateBlock) is unaffected and works.",
+        "affected_selectors": ["[data-testid='comments-translate-fallback']", "[data-testid^='comment-translated-label-']"]
+      },
+      {
+        "flow": "Cache after batch failure",
+        "issue": "When a batch fails (split mismatch), nothing is cached. Every page refresh re-triggers the same /api/translate call that will fail again — wasted API quota on every navigation/refresh. Suggest caching a 'failed' sentinel with short TTL, or persisting partial successes."
+      }
+    ],
+    "design_issues": [
+      {"screen": "PostDetail", "issues": ["When batch comments fail, the gray fallback note appears ABOVE the comments list but each comment is shown without any visual hint that translation failed for that specific row — UX could pair the note with a subtle bg or icon on each card."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_imta_translate_anon.py",
+    "/app/backend/tests/test_imta_translate_batch.py",
+    "/app/test_reports/pytest/iter4_anon.xml",
+    "/app/test_reports/pytest/iter4_batch.xml"
+  ],
+  "action_items": [
+    "HIGH: Make batch translation resilient to MyMemory separator loss. Recommended: on split mismatch, automatically fall back to sequential translateBlock calls (per-item) in translateBatch — slower but reliable; or chunk into batches of 3-4 items max.",
+    "MED: Try a more separator-friendly delimiter (e.g., a numbered token like ' [[SEG_1]] ' / ' [[SEG_2]] ' or use \\n\\n---\\n\\n) and adjust the split regex. Test with all target langs (vi/zh/ja/tl/th/id).",
+    "MED: Cache failed-batch sentinel with short TTL (e.g., 5 min) so refresh doesn't immediately re-hit /api/translate after a known-failing batch.",
+    "LOW: Consider lowering MyMemory load by client-side splitting long content into paragraphs and batching per-paragraph, since the free-tier behaves better on shorter inputs."
+  ],
+  "critical_code_review_comments": [
+    "/app/frontend/src/lib/translate.js translateBatch — split regex /\\s*\\|\\|\\|\\s*/ is brittle; for lists >5 items MyMemory frequently collapses separators causing total failure of the whole batch. Suggest auto-recovery: on split mismatch, do per-item fallback (Promise.all of translateBlock) instead of throwing.",
+    "/app/frontend/src/lib/useAutoTranslate.js — on failed batch, map is cleared and failed=true. There's no retry/backoff. With current MyMemory behavior, this means Petitions/Reviews/Comments effectively never auto-translate.",
+    "Frontend never reports the precise mismatch (e.g., '8 vs 9') to the user — console.warn only. Adding a debug toggle or sentry-like log would help diagnose remaining gaps.",
+    "server.py is still single-file 900+ lines (carry-over from iter 2/3); router split still recommended."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_imta_translate_batch.py (new — 6 tests: batch ||| ko→vi & ko→ja round-trip via split regex, VN user check, seed data sanity)"
+  ],
+  "success_rate": {
+    "backend": "100% on new batch suite (6/6); 7/8 on prior translate_anon suite (1 pre-existing long-text fail)",
+    "frontend": "Board ✓, PostDetail title+body+toggle ✓, PetitionDetail title+body+toggle ✓, Cache ✓, Fallback note ✓; Petitions list ✗, Reviews list ✗, Comments list ✗"
+  },
+  "test_credentials": "session_token=test_session_1779718769701 (Cookie). 테스트 user, country_code=VN. Confirmed via GET /api/auth/me.",
+  "seed_data_creation": "None new this iteration. Prior TEST_ prefixed comments/petitions/reviews from iter 3 still present and pollute Reviews list count (8 review cards visible).",
+  "retest_needed": true,
+  "main_agent_can_self_test": false,
+  "context_for_next_testing_agent": "Auto-translate-on-load feature is HALF working. Single-block flows (PostDetail title/body, PetitionDetail title/body) via translateBlock are reliable. Batch flows (Board, Petitions, Reviews, Comments) depend on MyMemory preserving the ||| separator and currently fail on lists ≥~8 items. Fallback note testids exist and render correctly. To verify fix: clear localStorage 'imta_translation_cache_v1', visit /petitions and /reviews and /board/visa/post_seed_1; expect petition-card titles in Vietnamese, review-translated-label-<id> count > 0, comment-translated-label-<id> count == number of comments, and corresponding *-translate-fallback testids ABSENT. KR-mode tested via code review only (no DB mutation performed). Known testids: title-shimmer, block-shimmer, post-translated-label, petition-translated-label, comment-translated-label-<id>, review-translated-label-<id>, toggle-original-btn ('원문 보기'/'번역 보기'), toggle-original-petition-btn, comment-toggle-<id>, review-toggle-<id>, board/petitions/reviews/post/petition/comments-translate-fallback. Cache namespace: 'imta_translation_cache_v1' object; sub-keys 'trans_post_<id>_title_<lang>', 'trans_post_<id>_body_<lang>', 'trans_<id>_<lang>' (batch).",
+  "rca_of_the_issue": "RCA: translateBatch joins items with ' ||| ' and POSTs to /api/translate → server proxies to MyMemory free API → MyMemory's ko→vi/zh/ja models occasionally normalize/translate the pipe-pipe-pipe characters, returning fewer (or one) segment(s). The frontend's strict split + length-match assertion throws split_mismatch_<N>_vs_<M>, which the hook (useAutoTranslateList) catches and sets failed=true; nothing is cached. Reproduction: log in as VN user, clear localStorage, GET /petitions — every visit reproduces split_mismatch_8_vs_9 in the console. Mitigation: (a) on mismatch, retry per-item via translateBlock and merge; (b) use a numbered token separator + tolerant regex; (c) chunk batches to <=5 items to drastically reduce mismatch probability. Fallback UX (gray note + original) already works as designed."
+}

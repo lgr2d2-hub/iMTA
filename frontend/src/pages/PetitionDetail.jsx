@@ -3,10 +3,11 @@ import { useNavigate, useParams } from "react-router-dom";
 import api from "../lib/api";
 import { useLang } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
-import { ArrowLeft, Share2, Check } from "lucide-react";
+import { ArrowLeft, Share2, Check, Languages } from "lucide-react";
 import { timeAgo } from "../lib/translate";
+import { useAutoTranslateBlocks } from "../lib/useAutoTranslate";
+import { BlockShimmer, TitleShimmer } from "../components/Shimmer";
 import { toast } from "sonner";
-import { TranslateButton } from "../components/TranslateButton";
 
 function daysLeft(iso) {
   const ms = new Date(iso).getTime() - Date.now();
@@ -19,7 +20,7 @@ export default function PetitionDetail() {
   const { t, lang } = useLang();
   const { user } = useAuth();
   const [p, setP] = useState(null);
-  const [translation, setTranslation] = useState(null);
+  const [showOriginal, setShowOriginal] = useState(false);
 
   const load = async () => {
     try {
@@ -28,6 +29,10 @@ export default function PetitionDetail() {
     } catch (e) { console.error("PetitionDetail.load:", e); }
   };
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [id]);
+
+  const blocks = p ? { title: p.title, body: p.description } : null;
+  const { translated, loading, failed, active } =
+    useAutoTranslateBlocks(p ? `petition_${p.petition_id}` : null, blocks);
 
   const sign = async () => {
     if (!user) { toast.error(t("login_required")); return; }
@@ -53,6 +58,10 @@ export default function PetitionDetail() {
     return <div className="px-4 py-10 text-center"><div className="w-8 h-8 border-2 border-imta border-t-transparent rounded-full animate-spin mx-auto" /></div>;
   }
 
+  const hasTranslation = active && translated && !failed;
+  const showTranslated = hasTranslation && !showOriginal;
+  const displayTitle = showTranslated ? translated.title : p.title;
+  const displayBody = showTranslated ? translated.body : p.description;
   const dleft = daysLeft(p.deadline);
   const progress = Math.min(100, (p.signature_count / 300000) * 100);
 
@@ -64,7 +73,9 @@ export default function PetitionDetail() {
 
       <div className="imta-card p-4">
         <div className="flex items-start justify-between gap-2">
-          <h1 className="text-lg font-bold leading-tight" data-testid="petition-title">{translation?.title || p.title}</h1>
+          <h1 className="text-lg font-bold leading-tight flex-1" data-testid="petition-title">
+            {loading && !translated ? <TitleShimmer /> : displayTitle}
+          </h1>
           <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-50 text-red-600 font-bold whitespace-nowrap">D-{dleft}</span>
         </div>
         <div className="text-xs text-gray-500 mt-2">{timeAgo(p.created_at, lang)}</div>
@@ -78,21 +89,35 @@ export default function PetitionDetail() {
           </div>
         </div>
 
-        {translation && (
+        {showTranslated && (
           <div className="text-[11px] italic text-gray-400 mt-4" data-testid="petition-translated-label">
             {t("translated_label")}
           </div>
         )}
-        <div className="whitespace-pre-wrap text-sm text-gray-800 mt-2 leading-relaxed" data-testid="petition-description">
-          {translation?.body || p.description}
-        </div>
+        {loading && !translated ? (
+          <BlockShimmer lines={4} />
+        ) : (
+          <div className="whitespace-pre-wrap text-sm text-gray-800 mt-2 leading-relaxed" data-testid="petition-description">
+            {displayBody}
+          </div>
+        )}
+        {active && failed && (
+          <div className="text-[11px] text-gray-400 mt-2" data-testid="petition-translate-fallback">
+            {t("translation_fallback")}
+          </div>
+        )}
 
         <div className="flex gap-2 mt-4">
-          <TranslateButton
-            id={`petition_${p.petition_id}`}
-            blocks={{ title: p.title, body: p.description }}
-            onResult={setTranslation}
-          />
+          {hasTranslation && (
+            <button
+              onClick={() => setShowOriginal((s) => !s)}
+              className="text-xs px-3 py-1.5 rounded-full bg-imta-light text-imta font-medium flex items-center gap-1"
+              data-testid="toggle-original-petition-btn"
+            >
+              <Languages size={12} />
+              {showOriginal ? t("view_translation") : t("original")}
+            </button>
+          )}
           <button onClick={share} className="text-xs px-3 py-1.5 rounded-full bg-gray-100 font-medium flex items-center gap-1" data-testid="share-petition-btn">
             <Share2 size={12} /> {t("share")}
           </button>

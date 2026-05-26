@@ -196,3 +196,8 @@ body {
 .text-imta { color: var(--imta-primary); }
 .bg-imta { background: var(--imta-primary); }
 .bg-imta-light { background: var(--imta-light); }
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

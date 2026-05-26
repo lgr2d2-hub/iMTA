@@ -106,6 +106,8 @@ const T = {
     translate_failed: "번역에 실패했습니다. 잠시 후 다시 시도해주세요.",
     already_same_lang: "이미 같은 언어로 작성된 글입니다.",
     translate_to: "번역",
+    view_translation: "번역 보기",
+    translation_fallback: "(번역을 불러올 수 없어 원문으로 표시됩니다)",
   },
   en: {
     app_name: "Immigrants Time", app_tagline: "From scattered experiences to connected knowledge",
@@ -194,6 +196,8 @@ const T = {
     translate_failed: "Translation failed. Please try again later.",
     already_same_lang: "This post is already in your language.",
     translate_to: "Translate",
+    view_translation: "View Translation",
+    translation_fallback: "(Showing original — translation unavailable)",
   },
   vi: {
     app_name: "Thời gian Nhập cư", app_tagline: "Từ kinh nghiệm rời rạc đến kiến thức kết nối",
