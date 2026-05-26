@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
 import api from "../lib/api";
 
 const AuthContext = createContext(null);
@@ -11,7 +11,8 @@ export function AuthProvider({ children }) {
     try {
       const { data } = await api.get("/auth/me");
       setUser(data);
-    } catch {
+    } catch (e) {
+      // Not signed in — this is expected for unauthenticated visitors
       setUser(null);
     } finally {
       setLoading(false);
@@ -29,15 +30,16 @@ export function AuthProvider({ children }) {
   }, [checkAuth]);
 
   const logout = useCallback(async () => {
-    try { await api.post("/auth/logout"); } catch { /* noop */ }
+    try { await api.post("/auth/logout"); } catch (e) { console.error("logout:", e); }
     setUser(null);
   }, []);
 
-  return (
-    <AuthContext.Provider value={{ user, setUser, loading, checkAuth, logout }}>
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo(
+    () => ({ user, setUser, loading, checkAuth, logout }),
+    [user, loading, checkAuth, logout],
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

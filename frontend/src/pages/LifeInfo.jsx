@@ -30,8 +30,12 @@ export default function LifeInfo() {
             </AccordionTrigger>
             <AccordionContent>
               <div className="pb-2 space-y-2">
-                {cat.items.map((it, i) => (
-                  <div key={i} className="p-3 rounded-lg border border-gray-100 bg-white" data-testid={`lifeinfo-item-${cat.id}-${i}`}>
+                {cat.items.map((it) => (
+                  <div
+                    key={`${cat.id}-${it.name}`}
+                    className="p-3 rounded-lg border border-gray-100 bg-white"
+                    data-testid={`lifeinfo-item-${cat.id}-${it.name}`}
+                  >
                     <div className="text-sm font-semibold">{it.name}</div>
                     {it.description && <div className="text-xs text-gray-600 mt-0.5">{it.description}</div>}
                     {it.email && <div className="text-xs text-gray-500 mt-1 flex items-center gap-1"><Mail size={11} /> {it.email}</div>}
@@ -40,7 +44,7 @@ export default function LifeInfo() {
                         <a
                           href={`tel:${it.phone.replace(/-/g, "")}`}
                           className="text-xs px-3 py-1.5 rounded-full bg-imta text-white font-medium flex items-center gap-1"
-                          data-testid={`call-${cat.id}-${i}`}
+                          data-testid={`call-${cat.id}-${it.name}`}
                         >
                           <Phone size={11} /> {t("call")} {it.phone}
                         </a>
@@ -51,7 +55,7 @@ export default function LifeInfo() {
                           target="_blank"
                           rel="noreferrer"
                           className="text-xs px-3 py-1.5 rounded-full bg-imta-light text-imta font-medium flex items-center gap-1"
-                          data-testid={`visit-${cat.id}-${i}`}
+                          data-testid={`visit-${cat.id}-${it.name}`}
                         >
                           <Globe size={11} /> {t("visit")}
                         </a>

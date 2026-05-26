@@ -73,6 +73,12 @@ function ReviewCard({ r, t, lang }) {
   const [translating, setTranslating] = useState(false);
   const [likes, setLikes] = useState(r.likes || 0);
 
+  const translateLabel = () => {
+    if (translating) return t("translating");
+    if (translated) return t("original");
+    return t("translate");
+  };
+
   const like = async () => {
     try {
       const { data } = await api.post(`/reviews/${r.review_id}/like`);
@@ -107,7 +113,7 @@ function ReviewCard({ r, t, lang }) {
           <ThumbsUp size={11} /> {likes}
         </button>
         <button onClick={doTranslate} className="text-xs px-3 py-1.5 rounded-full bg-imta-light text-imta font-medium flex items-center gap-1" data-testid={`review-translate-${r.review_id}`}>
-          <Languages size={11} /> {translating ? t("translating") : (translated ? t("original") : t("translate"))}
+          <Languages size={11} /> {translateLabel()}
         </button>
       </div>
     </div>

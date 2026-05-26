@@ -58,8 +58,8 @@ export default function Login() {
         </button>
 
         <div className="mt-10 grid grid-cols-3 gap-2 max-w-xs w-full">
-          {["💬", "🏥", "📋"].map((e, i) => (
-            <div key={i} className="bg-white border rounded-xl py-3 text-2xl">{e}</div>
+          {["💬", "🏥", "📋"].map((e) => (
+            <div key={e} className="bg-white border rounded-xl py-3 text-2xl">{e}</div>
           ))}
         </div>
       </div>

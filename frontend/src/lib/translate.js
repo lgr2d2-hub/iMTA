@@ -5,15 +5,16 @@ const CACHE_KEY = "imta_translation_cache_v1";
 function loadCache() {
   try {
     return JSON.parse(localStorage.getItem(CACHE_KEY) || "{}");
-  } catch {
+  } catch (e) {
+    console.error("translation cache read:", e);
     return {};
   }
 }
 function saveCache(cache) {
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
-  } catch {
-    /* quota */
+  } catch (e) {
+    console.error("translation cache write:", e);
   }
 }
 
@@ -28,7 +29,8 @@ export async function translateText(text, target, source = "ko") {
     cache[key] = translated;
     saveCache(cache);
     return translated;
-  } catch {
+  } catch (e) {
+    console.error("translateText:", e);
     return text;
   }
 }

@@ -23,11 +23,11 @@ export default function PostDetail() {
     try {
       const { data } = await api.get(`/posts/${postId}`);
       setPost(data);
-    } catch { /* noop */ }
+    } catch (e) { console.error("PostDetail.load post:", e); }
     try {
       const { data } = await api.get(`/posts/${postId}/comments`);
       setComments(data || []);
-    } catch { /* noop */ }
+    } catch (e) { console.error("PostDetail.load comments:", e); }
   };
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [postId]);
@@ -37,7 +37,7 @@ export default function PostDetail() {
     try {
       const { data } = await api.post(`/posts/${postId}/react`, { reaction_type: type });
       setPost((p) => ({ ...p, reactions: data.reactions, my_reaction: data.my_reaction }));
-    } catch { /* noop */ }
+    } catch (e) { console.error("PostDetail.react:", e); }
   };
 
   const toggleSave = async () => {
@@ -52,7 +52,7 @@ export default function PostDetail() {
     try {
       if (navigator.share) await navigator.share({ url, title: post?.title });
       else { await navigator.clipboard.writeText(url); toast.success(t("success")); }
-    } catch { /* noop */ }
+    } catch (e) { console.error("PostDetail.share:", e); }
   };
 
   const doTranslate = async () => {
@@ -71,6 +71,12 @@ export default function PostDetail() {
       setComments((prev) => [...prev, data]);
       setCommentText("");
     } catch { toast.error(t("error")); }
+  };
+
+  const translateLabel = () => {
+    if (translating) return t("translating");
+    if (translated) return t("original");
+    return t("translate_post");
   };
 
   if (!post) {
@@ -102,7 +108,7 @@ export default function PostDetail() {
 
         <div className="flex items-center gap-1.5 mt-4 flex-wrap" data-testid="post-actions">
           <button onClick={doTranslate} className="text-xs px-3 py-1.5 rounded-full bg-imta-light text-imta font-medium flex items-center gap-1" data-testid="translate-post-btn">
-            <Languages size={12} /> {translating ? t("translating") : (translated ? t("original") : t("translate_post"))}
+            <Languages size={12} /> {translateLabel()}
           </button>
           <button onClick={toggleSave} className={`text-xs px-3 py-1.5 rounded-full font-medium flex items-center gap-1 ${post.is_saved ? "bg-imta text-white" : "bg-gray-100 text-gray-700"}`} data-testid="save-post-btn">
             <Bookmark size={12} /> {t("save_post")}

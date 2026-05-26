@@ -25,7 +25,7 @@ export function LoadingSkeleton({ rows = 3 }) {
   return (
     <div className="space-y-2 px-4">
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="bg-white border border-gray-100 rounded-xl p-3 animate-pulse">
+        <div key={`skel-${i}`} className="bg-white border border-gray-100 rounded-xl p-3 animate-pulse">
           <div className="h-4 bg-gray-100 rounded w-3/4" />
           <div className="h-3 bg-gray-100 rounded w-1/2 mt-2" />
           <div className="h-3 bg-gray-100 rounded w-1/3 mt-2" />

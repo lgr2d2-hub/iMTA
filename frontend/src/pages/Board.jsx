@@ -49,8 +49,8 @@ export default function Board() {
         <div className="text-lg font-bold">{t("nav_board")} 💬</div>
         {userChips.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-2" data-testid="user-filter-chips">
-            {userChips.map((c, i) => (
-              <span key={i} className="imta-chip">{c}</span>
+            {userChips.map((c) => (
+              <span key={c} className="imta-chip">{c}</span>
             ))}
           </div>
         )}

@@ -25,7 +25,7 @@ export default function PetitionDetail() {
     try {
       const { data } = await api.get(`/petitions/${id}`);
       setP(data);
-    } catch { /* noop */ }
+    } catch (e) { console.error("PetitionDetail.load:", e); }
   };
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [id]);
 
@@ -54,12 +54,18 @@ export default function PetitionDetail() {
     try {
       if (navigator.share) await navigator.share({ url: window.location.href, title: p.title });
       else { await navigator.clipboard.writeText(window.location.href); toast.success(t("success")); }
-    } catch { /* noop */ }
+    } catch (e) { console.error("PetitionDetail.share:", e); }
   };
 
   if (!p) {
     return <div className="px-4 py-10 text-center"><div className="w-8 h-8 border-2 border-imta border-t-transparent rounded-full animate-spin mx-auto" /></div>;
   }
+
+  const translateLabel = () => {
+    if (translating) return t("translating");
+    if (translated) return t("original");
+    return t("translate_post");
+  };
 
   const dleft = daysLeft(p.deadline);
   const progress = Math.min(100, (p.signature_count / 300000) * 100);
@@ -92,7 +98,7 @@ export default function PetitionDetail() {
 
         <div className="flex gap-2 mt-4">
           <button onClick={doTranslate} className="text-xs px-3 py-1.5 rounded-full bg-imta-light text-imta font-medium flex items-center gap-1" data-testid="translate-petition-btn">
-            <Languages size={12} /> {translating ? t("translating") : (translated ? t("original") : t("translate_post"))}
+            <Languages size={12} /> {translateLabel()}
           </button>
           <button onClick={share} className="text-xs px-3 py-1.5 rounded-full bg-gray-100 font-medium flex items-center gap-1" data-testid="share-petition-btn">
             <Share2 size={12} /> {t("share")}
