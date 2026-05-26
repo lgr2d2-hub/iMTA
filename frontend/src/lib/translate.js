@@ -59,13 +59,37 @@ export async function translateBlock({ text, target, source = "ko", id }) {
 }
 
 /**
+ * Run async task factories with a concurrency limit and return a settled array
+ * shaped like `Promise.allSettled`. Used by `translateBatch` to avoid firing
+ * 12+ parallel MyMemory requests when the combined-call fallback path runs.
+ */
+async function settledLimit(tasks, limit) {
+  const results = new Array(tasks.length);
+  let cursor = 0;
+  async function worker() {
+    while (cursor < tasks.length) {
+      const idx = cursor;
+      cursor += 1;
+      try { results[idx] = { status: "fulfilled", value: await tasks[idx]() }; }
+      catch (e) { results[idx] = { status: "rejected", reason: e }; }
+    }
+  }
+  const n = Math.min(limit, tasks.length);
+  await Promise.all(Array.from({ length: n }, worker));
+  return results;
+}
+
+/**
  * Batch-translate a list of {id, text} items in a single API call using a "|||"
  * separator, with localStorage caching per item.
  *
  * Returns a map: { [id]: translated_text }.
  * Items already present in cache are served without an API call.
- * Throws if the API fails or if the response cannot be split back into the
- * expected number of parts — callers should fall back to original text.
+ * If the batch response cannot be split back into the expected number of parts
+ * (MyMemory occasionally drops/merges the separator on long lists), the
+ * function automatically falls back to one API call per remaining item, with a
+ * small concurrency limit. All cache writes happen in ONE saveCache at the end
+ * to avoid the read-modify-write race between parallel writers.
  */
 export async function translateBatch({ items, target, source = "ko" }) {
   if (!items?.length || !target || target === source) {
@@ -82,21 +106,49 @@ export async function translateBatch({ items, target, source = "ko" }) {
   });
   if (pending.length === 0) return result;
 
-  const joined = pending.map((p) => p.text).join(SEP);
-  const { data } = await api.post("/translate", { text: joined, target, source });
-  const translated = (data?.translated || "").trim();
-  if (!translated) throw new Error("empty_translation");
-  // Translation engines sometimes collapse whitespace around the separator.
-  const parts = translated.split(/\s*\|\|\|\s*/);
-  if (parts.length !== pending.length) {
-    throw new Error(`split_mismatch_${parts.length}_vs_${pending.length}`);
+  // Try a single combined call first — cheapest path when it works.
+  try {
+    const joined = pending.map((p) => p.text).join(SEP);
+    const { data } = await api.post("/translate", { text: joined, target, source });
+    const translated = (data?.translated || "").trim();
+    if (!translated) throw new Error("empty_translation");
+    const parts = translated.split(/\s*\|\|\|\s*/);
+    if (parts.length !== pending.length) {
+      throw new Error(`split_mismatch_${parts.length}_vs_${pending.length}`);
+    }
+    pending.forEach((p, i) => {
+      const out = (parts[i] || "").trim() || p.text;
+      result[p.id] = out;
+      cache[`trans_${p.id}_${target}`] = out;
+    });
+    saveCache(cache);
+    return result;
+  } catch (e) {
+    console.warn("translateBatch combined call failed, falling back per-item:", e?.message);
   }
-  pending.forEach((p, i) => {
-    const out = (parts[i] || "").trim() || p.text;
-    result[p.id] = out;
-    cache[`trans_${p.id}_${target}`] = out;
+
+  // Per-item fallback — direct /translate calls, concurrency-limited, single
+  // cache write at the end to avoid the parallel-write race.
+  const tasks = pending.map((p) => async () => {
+    const { data } = await api.post("/translate", { text: p.text, target, source });
+    const tr = (data?.translated || "").trim();
+    if (!tr) throw new Error("empty");
+    return { id: p.id, text: tr };
+  });
+  const settled = await settledLimit(tasks, 4);
+  let okCount = 0;
+  settled.forEach((s, i) => {
+    const p = pending[i];
+    if (s.status === "fulfilled") {
+      result[p.id] = s.value.text;
+      cache[`trans_${p.id}_${target}`] = s.value.text;
+      okCount += 1;
+    } else {
+      result[p.id] = p.text;
+    }
   });
   saveCache(cache);
+  if (okCount === 0) throw new Error("all_items_failed");
   return result;
 }
 

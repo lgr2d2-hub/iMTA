@@ -49,6 +49,15 @@ Build "IMTA (이민자 타임 / Immigrants-Time)" — a beautiful, mobile-first,
 - Applied to: post detail, petition detail, review cards, and per-comment translate buttons.
 - Backend `/api/translate` proxy: 2000 char limit; banner detection (`INVALID TARGET`, `INVALID SOURCE`, `PLEASE SELECT`, `MYMEMORY WARNING`) returns empty string instead of echoing the error.
 
+## 2026-02 follow-up — Auto-translate on page load (verified iteration_5)
+- Auto-translate is now **on-load** (no manual button) when `user.country_code !== "KR"`. The previous manual `TranslateButton` was removed.
+- **List pages** (Board titles, Petitions titles, Reviews bodies): batch-translate via `translateBatch` with `|||` separator + tolerant split regex `/\s*\|\|\|\s*/`. When MyMemory drops the separator (frequent on lists ≥8 items), the helper **automatically falls back** to per-item translation with a 4-way concurrency limit. All results are merged into ONE `localStorage.setItem` at the end to avoid the read-modify-write race when several writers ran in parallel.
+- **Detail pages** (PostDetail, PetitionDetail): `useAutoTranslateBlocks` sequentially translates `title` and `body` on mount, defaults to the translated view, with `italic "(번역됨 / Translated)"` label and toggle button "원문 보기 ↔ 번역 보기".
+- **Comments**: batch-translated on mount; each `CommentRow` renders its own "(번역됨 / Translated)" label + small "원문 보기" link.
+- **Caching**: `imta_translation_cache_v1` localStorage namespace with sub-keys `trans_<id>_<lang>` per item — second visit costs **0** `/api/translate` calls (verified 9/9 keys persisted after one visit to /petitions).
+- **Error fallback**: if every item in a batch fails, the helper throws `all_items_failed` and the page shows a small gray note `(번역을 불러올 수 없어 원문으로 표시됩니다)` while rendering the original Korean text. Partial failures degrade gracefully (mixed translated + original, no banner).
+- **Shimmer** placeholders (`TitleShimmer` / `BlockShimmer` + `@keyframes shimmer` in `index.css`) replace titles/bodies while translation is in flight.
+
 ## 2026-02 update — P0 critical bug fixes (verified iteration_2)
 - Review posting flow: discrete validation toasts (missing category / empty place / content < 50 chars), submit dispatches `imta:reviews-updated` custom event with `detail.category` so the Reviews page switches tab + refreshes automatically. Char counter `0/50` added in modal.
 - Notification backend triggers: comment → notify post author + prior commenters (`reply`), petition sign → notify petition creator, chat message → notify channel members. Self-notifications suppressed. ChatLobby now auto-joins on channel open so future messages fan-out to all participants.

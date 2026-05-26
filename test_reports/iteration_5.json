@@ -1,0 +1,46 @@
+{
+  "summary": "Iteration 5 — re-tested per-item fallback fix in translateBatch. Verdict: PRIMARY USER-VISIBLE BUG IS FIXED. All three previously-broken surfaces (Petitions list, Reviews list, PostDetail comments) now render Vietnamese text on the first page load for VN user, after the per-item Promise.allSettled fallback path kicks in following the expected MyMemory split_mismatch. Fallback note testids (petitions/reviews/comments-translate-fallback) are correctly ABSENT because okCount > 0. Toggles work. BUT a NEW caching race-condition bug was found: during the per-item fallback path each parallel translateBlock loads its own snapshot of localStorage, mutates it, and writes back — last writer wins, so only ONE of N items gets persisted per visit. Verified: clear cache → /petitions → 10 /api/translate calls made BUT only 1 trans_pet_*_vi cache key survives. Revisit → 9 items still pending the first cached one → 9 more calls; this time only 1 is pending after dedup of cached → eventually converges to 9 keys after 2 visits. Net effect: users waste ~N−1 MyMemory quota calls per visit until cache fully populates over multiple sessions.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Per-item fallback cache persistence (translateBatch → translateBlock parallel)",
+        "issue": "Race condition: translateBlock does loadCache→mutate→saveCache. When invoked via Promise.allSettled with N pending items, all N calls capture {} at start, then each saveCache overwrites the others. Result: only 1 of N items gets cached per page-load. Repro: clear localStorage → visit /petitions (9 items) → cache has just 1 trans_pet_*_vi key despite all 9 rendering in VI. Revisit #2 → 1 cached, 8 pending → 8 fresh calls → again only 1 new key cached (but the first-visit's 1 key survives because the new race only mutates a snapshot that contained it). Convergence took 2 visits in the test; ~N−1 wasted /api/translate calls per visit during convergence.",
+        "affected_selectors": ["localStorage 'imta_translation_cache_v1'"]
+      },
+      {
+        "flow": "Board /board post-row testids",
+        "issue": "No data-testid found that matches 'post-row-*' on /board. Only board-page, board-search-input, fab-write-post are present. Cannot programmatically count rendered posts. Cosmetic / test-harness gap — feature still works (1 successful translate API call observed) and prior iter4 reported Board working."
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_imta_translate_batch.py",
+    "/app/test_reports/pytest/iter4_batch.xml"
+  ],
+  "action_items": [
+    "HIGH: Fix the per-item fallback cache race in translate.js. Two safe options: (a) Don't call translateBlock from the fallback path — instead do Promise.allSettled of raw `api.post('/translate',…)` and then perform a single loadCache→merge-all-N-results→saveCache after the Promise.allSettled resolves; or (b) wrap saveCache in a 'read-modify-write' helper that re-reads the cache immediately before each write and merges (still racy, but only loses overlapping writes; the merge approach in (a) is cleaner). Verified: today the user pays the MyMemory quota cost for every petition/review/comment on every visit until convergence — wasteful and slow.",
+    "LOW: Add data-testid='post-row-<post_id>' (or similar) on Board list items for stable test automation."
+  ],
+  "critical_code_review_comments": [
+    "/app/frontend/src/lib/translate.js translateBatch — the per-item fallback is functionally correct (users see translations + no fallback note) but has a stale-snapshot cache race. Suggested patch: replace the Promise.allSettled(translateBlock(...)) loop with Promise.allSettled of raw api.post calls, accumulate results into a local map, then do ONE merge-write at the end (same pattern as the combined-call success path already uses).",
+    "/app/frontend/src/lib/translate.js — comment 'Each call caches its own result so partial successes survive even if some items fail' is misleading given the observed race; suggest updating the comment alongside the fix.",
+    "Per-item fallback issues N parallel MyMemory calls — for /board/visa/post_seed_1 with 12 comments this fires 12 simultaneous external API calls every uncached visit (15 calls observed: 1 combined + 12 comments + 1 title + 1 body). Recommend adding a small concurrency limit (e.g., p-limit with 4-5) to be polite to MyMemory free tier."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "n/a (no backend changes this iter)",
+    "frontend": "Petitions ✓ (9/9 VI titles, fb absent), Reviews ✓ (8 labels, 8 toggles, fb absent, toggle KO↔VI works), PostDetail comments ✓ (12 labels, 12 toggles, fb absent, post-translated-label present), Board partial ✓ (1 successful batch call, fb absent, no post-row testid to verify), Cache PARTIAL ✗ (race condition limits saves to 1 per visit during fallback path)"
+  },
+  "test_credentials": "session_token=test_session_1779718769701 (Cookie). 테스트 user, country_code=VN — same as iter 4.",
+  "seed_data_creation": "None.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iter 5 confirms the user-visible bug (Korean+gray-note on Petitions/Reviews/Comments) is GONE. New issue is invisible to end-users but burns MyMemory quota: per-item fallback path has a cache write race that limits persistence to 1-of-N items per visit. To verify the fix in iter 6: (a) clear localStorage 'imta_translation_cache_v1', (b) visit /petitions and wait 15s, (c) inspect localStorage — expect ALL 9 trans_pet_*_vi keys, not just 1. Confirmed cache keys after full convergence: trans_pet_f4c58176c5df_vi, trans_pet_seed_1_vi … _vi, trans_pet_4ba4944aa2dd_vi (9 total). KR-mode and P0 regressions (anon comment, review creation, chat lobby, notif polling) NOT re-tested this iter as they are unrelated to translate.js — defer to iter 3 reports.",
+  "rca_of_the_issue": "RCA — per-item fallback cache race: translateBlock(text,target,source,id) does `cache = loadCache(); … cache[key]=translated; saveCache(cache)`. When translateBatch's fallback path calls translateBlock for N pending items via Promise.allSettled, all N invocations execute their sync top-of-function loadCache() at the same microtask tick, each obtaining its own snapshot of the cache object. Each subsequent saveCache writes that snapshot back as JSON, overwriting whatever any other concurrent call already persisted — last writer wins, so the durable result is a single-key cache. Reproduction (verified): clear localStorage → GET /petitions as VN user → wait 15s → `JSON.parse(localStorage.imta_translation_cache_v1)` has exactly 1 trans_pet_*_vi key out of 9 expected. Revisit → only 8 still pending → fires 8 fresh parallel calls → again only 1 NEW key persists, but the first visit's 1 key happens to survive in this revisit's snapshots (because all 8 calls observed it during loadCache). After 2 visits the page converges to 9 keys; ~10 wasted MyMemory calls in the process. Mitigation: do a single merge-write after Promise.allSettled resolves (collect results in-memory, then loadCache→assign all→saveCache once)."
+}
