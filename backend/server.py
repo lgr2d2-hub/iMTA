@@ -718,11 +718,17 @@ async def translate(payload: TranslatePayload):
                 params={"q": payload.text[:2000], "langpair": f"{payload.source}|{payload.target}"},
             )
             data = r.json()
-            translated = data.get("responseData", {}).get("translatedText", payload.text)
+            translated = (data.get("responseData") or {}).get("translatedText") or ""
+            # Detect MyMemory error sentinels — they often emit ALL-CAPS banners
+            # like "'ZZ' IS AN INVALID TARGET LANGUAGE" or "PLEASE SELECT TWO DISTINCT LANGUAGES".
+            err_markers = ("INVALID TARGET", "INVALID SOURCE", "PLEASE SELECT", "MYMEMORY WARNING")
+            upper = translated.upper()
+            if not translated or any(m in upper for m in err_markers):
+                return {"translated": ""}
             return {"translated": translated}
     except Exception as e:
         logger.warning("translation failed: %s", e)
-        return {"translated": payload.text}
+        return {"translated": ""}
 
 
 @api.get("/")

@@ -43,7 +43,13 @@ Build "IMTA (이민자 타임 / Immigrants-Time)" — a beautiful, mobile-first,
 - Translation button on posts/petitions/reviews via MyMemory proxy + localStorage cache
 - Sample seed data auto-loaded on backend startup (5 posts, 5 petitions, 4 reviews, 20 channels, 6 chat messages)
 
-## 2026-02 update — P0 critical bug fixes (verified by testing agent iteration_2)
+## 2026-02 follow-up — Anonymous comments + Working translate flow (verified iteration_3)
+- Anonymous comments: comment input now has a checkbox "익명으로 작성 / Post anonymously" below the send button. When ON, POST includes `is_anonymous: true`; backend `author_info` already masks user_id="" + nickname="익명" + flag="🕶️". Toggle auto-resets to OFF after submit. New comments render with a `UserRound` lucide icon instead of nationality flag.
+- Translate / View Original flow: rebuilt around new `TranslateButton` + `translateBlock` helper. Target language is now derived from `currentUser.country_code` via `COUNTRY_TO_LANG` map (VN→vi, CN→zh, JP→ja, PH→tl, KH→km, TH→th, MN→mn, RU→ru, UZ→uz, NP→ne, MM→my, ID→id, BD→bn, KZ→kk, KR→ko, else→en). Button label includes destination ("이 글 번역하기 (→ Tiếng Việt)"). Spinner during fetch; italic "(번역됨 / Translated)" label above translated content; toggle restores original. localStorage cache key `translation_<id>_<blockKey>_<lang>` under namespace `imta_translation_cache_v1` — repeat translations served from cache without re-hitting MyMemory. Same-language guard toasts `already_same_lang`. On failure (empty/banner from MyMemory) backend returns `""` and frontend toasts `translate_failed` then reverts UI.
+- Applied to: post detail, petition detail, review cards, and per-comment translate buttons.
+- Backend `/api/translate` proxy: 2000 char limit; banner detection (`INVALID TARGET`, `INVALID SOURCE`, `PLEASE SELECT`, `MYMEMORY WARNING`) returns empty string instead of echoing the error.
+
+## 2026-02 update — P0 critical bug fixes (verified iteration_2)
 - Review posting flow: discrete validation toasts (missing category / empty place / content < 50 chars), submit dispatches `imta:reviews-updated` custom event with `detail.category` so the Reviews page switches tab + refreshes automatically. Char counter `0/50` added in modal.
 - Notification backend triggers: comment → notify post author + prior commenters (`reply`), petition sign → notify petition creator, chat message → notify channel members. Self-notifications suppressed. ChatLobby now auto-joins on channel open so future messages fan-out to all participants.
 - NotificationContext: 30-second `setInterval` polling + `visibilitychange` listener re-fetches on tab focus.
