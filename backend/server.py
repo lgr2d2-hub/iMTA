@@ -712,10 +712,10 @@ async def translate(payload: TranslatePayload):
     if not payload.text.strip():
         return {"translated": ""}
     try:
-        async with httpx.AsyncClient(timeout=10) as http_client:
+        async with httpx.AsyncClient(timeout=15) as http_client:
             r = await http_client.get(
                 "https://api.mymemory.translated.net/get",
-                params={"q": payload.text[:500], "langpair": f"{payload.source}|{payload.target}"},
+                params={"q": payload.text[:2000], "langpair": f"{payload.source}|{payload.target}"},
             )
             data = r.json()
             translated = data.get("responseData", {}).get("translatedText", payload.text)

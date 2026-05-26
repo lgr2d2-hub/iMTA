@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Bookmark, Share2, Languages, Send } from "lucide-react";
+import { ArrowLeft, Bookmark, Share2, Send, UserRound } from "lucide-react";
 import api from "../lib/api";
 import { useLang } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { REACTION_TYPES } from "../lib/constants";
-import { translateText, timeAgo } from "../lib/translate";
+import { timeAgo } from "../lib/translate";
 import { toast } from "sonner";
+import { TranslateButton } from "../components/TranslateButton";
+import { CommentCard } from "../components/CommentCard";
 
 export default function PostDetail() {
   const { postId } = useParams();
@@ -16,8 +18,8 @@ export default function PostDetail() {
   const [post, setPost] = useState(null);
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState("");
-  const [translated, setTranslated] = useState(null);
-  const [translating, setTranslating] = useState(false);
+  const [commentAnon, setCommentAnon] = useState(false);
+  const [translation, setTranslation] = useState(null); // { title, body } | null
 
   const load = async () => {
     try {
@@ -44,7 +46,7 @@ export default function PostDetail() {
     if (!user) { toast.error(t("login_required")); return; }
     const { data } = await api.post(`/posts/${postId}/save`);
     setPost((p) => ({ ...p, is_saved: data.is_saved }));
-    toast.success(data.is_saved ? t("success") : t("success"));
+    toast.success(t("success"));
   };
 
   const share = async () => {
@@ -55,28 +57,18 @@ export default function PostDetail() {
     } catch (e) { console.error("PostDetail.share:", e); }
   };
 
-  const doTranslate = async () => {
-    if (translated) { setTranslated(null); return; }
-    setTranslating(true);
-    const text = await translateText(post.content, lang);
-    setTranslated(text);
-    setTranslating(false);
-  };
-
   const addComment = async () => {
     if (!user) { toast.error(t("login_required")); return; }
     if (!commentText.trim()) return;
     try {
-      const { data } = await api.post(`/posts/${postId}/comments`, { content: commentText.trim() });
+      const { data } = await api.post(`/posts/${postId}/comments`, {
+        content: commentText.trim(),
+        is_anonymous: commentAnon,
+      });
       setComments((prev) => [...prev, data]);
       setCommentText("");
+      setCommentAnon(false); // reset toggle after submission
     } catch { toast.error(t("error")); }
-  };
-
-  const translateLabel = () => {
-    if (translating) return t("translating");
-    if (translated) return t("original");
-    return t("translate_post");
   };
 
   if (!post) {
@@ -87,6 +79,8 @@ export default function PostDetail() {
     );
   }
 
+  const isAnonAuthor = post.is_anonymous || post.author?.nickname === "익명";
+
   return (
     <div className="px-4 py-4 fade-up" data-testid="post-detail-page">
       <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-gray-600 mb-3" data-testid="back-btn">
@@ -94,22 +88,39 @@ export default function PostDetail() {
       </button>
 
       <div className="imta-card p-4">
-        <h1 className="text-lg font-bold leading-tight">{post.title}</h1>
+        <h1 className="text-lg font-bold leading-tight" data-testid="post-title">
+          {translation?.title || post.title}
+        </h1>
         <div className="text-xs text-gray-500 mt-2 flex items-center gap-2">
-          <span>{post.author?.country_flag} {post.author?.nickname}</span>
+          {isAnonAuthor ? (
+            <span className="flex items-center gap-1">
+              <UserRound size={12} className="text-gray-400" />
+              {t("anonymous_short")}
+            </span>
+          ) : (
+            <span>{post.author?.country_flag} {post.author?.nickname}</span>
+          )}
           <span>·</span>
           <span>{timeAgo(post.created_at, lang)}</span>
           <span>·</span>
           <span>{post.views} {t("views")}</span>
         </div>
-        <div className="whitespace-pre-wrap text-sm text-gray-800 mt-4 leading-relaxed" data-testid="post-content">
-          {translated || post.content}
+
+        {translation && (
+          <div className="text-[11px] italic text-gray-400 mt-3" data-testid="post-translated-label">
+            {t("translated_label")}
+          </div>
+        )}
+        <div className="whitespace-pre-wrap text-sm text-gray-800 mt-2 leading-relaxed" data-testid="post-content">
+          {translation?.body || post.content}
         </div>
 
         <div className="flex items-center gap-1.5 mt-4 flex-wrap" data-testid="post-actions">
-          <button onClick={doTranslate} className="text-xs px-3 py-1.5 rounded-full bg-imta-light text-imta font-medium flex items-center gap-1" data-testid="translate-post-btn">
-            <Languages size={12} /> {translateLabel()}
-          </button>
+          <TranslateButton
+            id={`post_${post.post_id}`}
+            blocks={{ title: post.title, body: post.content }}
+            onResult={setTranslation}
+          />
           <button onClick={toggleSave} className={`text-xs px-3 py-1.5 rounded-full font-medium flex items-center gap-1 ${post.is_saved ? "bg-imta text-white" : "bg-gray-100 text-gray-700"}`} data-testid="save-post-btn">
             <Bookmark size={12} /> {t("save_post")}
           </button>
@@ -145,30 +156,38 @@ export default function PostDetail() {
           {comments.length === 0 && (
             <div className="text-xs text-gray-400 py-4 text-center">{t("no_comments")}</div>
           )}
-          {comments.map((c) => (
-            <div key={c.comment_id} className="imta-card p-3" data-testid={`comment-${c.comment_id}`}>
-              <div className="text-xs text-gray-500 flex items-center gap-2">
-                <span>{c.author?.country_flag} {c.author?.nickname}</span>
-                <span>·</span>
-                <span>{timeAgo(c.created_at, lang)}</span>
-              </div>
-              <div className="text-sm mt-1">{c.content}</div>
-            </div>
-          ))}
+          {comments.map((c) => <CommentCard key={c.comment_id} c={c} />)}
         </div>
 
-        <div className="mt-3 flex items-center gap-2">
-          <input
-            value={commentText}
-            onChange={(e) => setCommentText(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addComment()}
-            placeholder={t("comment_ph")}
-            className="flex-1 px-3 py-2 rounded-full bg-white border text-sm outline-none focus:ring-2 focus:ring-imta"
-            data-testid="comment-input"
-          />
-          <button onClick={addComment} className="w-10 h-10 rounded-full bg-imta text-white flex items-center justify-center" data-testid="comment-submit-btn">
-            <Send size={16} />
-          </button>
+        <div className="mt-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <input
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addComment()}
+              placeholder={t("comment_ph")}
+              className="flex-1 px-3 py-2 rounded-full bg-white border text-sm outline-none focus:ring-2 focus:ring-imta"
+              data-testid="comment-input"
+            />
+            <button onClick={addComment} className="w-10 h-10 rounded-full bg-imta text-white flex items-center justify-center" data-testid="comment-submit-btn">
+              <Send size={16} />
+            </button>
+          </div>
+          <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer select-none pl-1" data-testid="comment-anon-label">
+            <input
+              type="checkbox"
+              checked={commentAnon}
+              onChange={(e) => setCommentAnon(e.target.checked)}
+              className="w-4 h-4 accent-imta cursor-pointer"
+              data-testid="comment-anon-checkbox"
+            />
+            <span>{t("anonymous")}</span>
+            {commentAnon && (
+              <span className="ml-1 inline-flex items-center gap-0.5 text-imta font-medium">
+                <UserRound size={11} /> {t("anonymous_short")}
+              </span>
+            )}
+          </label>
         </div>
       </div>
     </div>

@@ -1,0 +1,64 @@
+{
+  "summary": "Validated both follow-up fixes on IMTA: (1) Anonymous comment toggle on PostDetail — backend masks author as 익명/🕶️, frontend checkbox toggles + resets after submit + new comment renders with UserRound icon. (2) Translate button (MyMemory proxy via /api/translate) works on PostDetail, PetitionDetail, Reviews, and Comments. Button label shows target lang ('이 글 번역하기 (→ Tiếng Việt)' for VN user), spinner+'번역 중...' during load, '(번역됨 / Translated)' italic label appears, toggle restores original. localStorage cache key format 'translation_<id>_<key>_<lang>' verified; 3rd click served from cache with 0 API calls. Backend 8/8 pytest pass; previous 7-test P0 suite still green; frontend Playwright passes all critical flows.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/translate", "issue": "Swallows MyMemory failures by returning the original text instead of an error status; frontend cannot distinguish 'translation failed' from 'translation == original'. Acceptable as MVP fallback but the JS translateBlock relies on detecting empty string only — silent failures with non-empty echo would NOT trigger toast 'translate_failed'."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "PostDetail comments list", "issues": ["Each comment now shows its own small TranslateButton, even very short Korean comments — produces visual noise; consider hiding when content length < ~30 chars or when content already matches target lang heuristically."]},
+      {"screen": "Reviews cards", "issues": ["Translate pill placement under stars is consistent but slightly cramped on 390px viewport; readable but touch target close to like button."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_imta_translate_anon.py",
+    "/app/test_reports/pytest/translate_anon_results.xml",
+    "/app/backend/tests/test_imta_p0_fixes.py",
+    "/app/test_reports/pytest/p0_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py /api/translate returns original text on httpx exception → silent failure. Recommend returning HTTP 502 (or {\"translated\": \"\"}) so frontend translate_failed toast fires reliably; current code masks errors as no-op.",
+    "TranslateButton.jsx loops with await in a for-loop (eslint-disable no-await-in-loop). For PostDetail with {title, body} this is intentionally sequential to respect MyMemory's free-tier rate limit, but document the rationale or switch to Promise.all if rate limits allow.",
+    "translate.js cache key prefix is 'translation_' (single namespace under imta_translation_cache_v1). Long-running users will grow this map unbounded; add an LRU/size cap or TTL eviction.",
+    "server.py is now 922+ lines — recommendation from iteration 2 to split into routers (auth/posts/petitions/reviews/chat/notifications/translate) still applies.",
+    "Translate proxy uses MyMemory free API without auth; per their TOS, daily anonymous quota is 1000 words/day per IP. With cache-on-first-translate this is fine but worth a comment in server.py."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_imta_translate_anon.py (new — 8 tests covering anonymous comment masking, real-author rendering, ko→vi/zh/ja translate, empty text guard, 2000-char cap)"
+  ],
+  "success_rate": {"backend": "100% (8/8 new + 7/7 previous P0 = 15/15)", "frontend": "100% on tested flows"},
+  "test_credentials": "session_token=test_session_1779718769701 (Cookie or Authorization: Bearer). 테스트 user, country_code=VN, onboarded.",
+  "seed_data_creation": "Test comments with content prefix 'TEST anon ...' / 'TEST real ...' / 'TEST notif ...' added to post_seed_1 during test runs (no cleanup). Test petitions with title prefix 'TEST_pet_' persist from prior iteration.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Both follow-up fixes pass. Key testids: translate-btn-post_<id>, translate-btn-petition_<id>, translate-btn-review_<id>, translate-btn-comment_<id>, post-translated-label, petition-translated-label, review-translated-label-<id>, comment-translated-label-<id>, comment-anon-checkbox, comment-anon-label. localStorage cache key under 'imta_translation_cache_v1' with sub-keys 'translation_<id>_<blockKey>_<lang>' (e.g. 'translation_post_post_seed_1_title_vi'). Cache hit verified: 3rd toggle uses 0 API calls. MyMemory ko→vi/zh/ja all return non-empty translations. Comment Send button uses lucide-send svg (selector 'button:has(svg.lucide-send)'). Comment textarea is actually an <input> (use page.get_by_placeholder('댓글을 남겨주세요...'))",
+  "tested_features": [
+    "POST /api/posts/{post_id}/comments with is_anonymous=true → author.nickname='익명', country_flag='🕶️', user_id='' — verified",
+    "POST /api/posts/{post_id}/comments with is_anonymous=false → real nickname 테스트 + flag 🇻🇳 — verified",
+    "GET /api/posts/{post_id}/comments persists is_anonymous flag and masked author — verified",
+    "POST /api/translate ko→vi returns non-empty translation — verified",
+    "POST /api/translate ko→zh returns non-empty translation — verified",
+    "POST /api/translate ko→ja returns non-empty translation — verified",
+    "POST /api/translate empty text returns '' — verified",
+    "POST /api/translate 1400-char input handled (2000 char cap) — verified",
+    "Frontend PostDetail TranslateButton label '이 글 번역하기 (→ Tiếng Việt)' for VN user — verified",
+    "Click → '번역 중...' spinner → translated body + '(번역됨 / Translated)' label appears, button → '원문 보기' — verified",
+    "Toggle back: button → original label, translated label hidden — verified",
+    "localStorage cache keys 'translation_post_post_seed_1_title_vi' and '..._body_vi' present after first translate — verified",
+    "Third translate click results in 0 /api/translate calls (cache hit) — verified",
+    "comment-anon-checkbox toggles, preview '익명' visible — verified",
+    "After submit checkbox auto-resets to unchecked AND input cleared AND new comment shows '익명·방금 전' (no real nickname/flag) — verified",
+    "PetitionDetail /petitions/pet_seed_1: TranslateButton for {title, body=description} → petition-translated-label visible, button toggles to '원문 보기' — verified",
+    "Reviews /reviews: each ReviewCard has size='sm' TranslateButton; click translates content only and shows review-translated-label-<id> — verified",
+    "CommentCard size='sm' TranslateButton on each comment: translates content, comment-translated-label-<id> visible, 1 API call per comment — verified"
+  ],
+  "skipped": [
+    "KR user same-language guard (already_same_lang toast) — code path inspected in TranslateButton.jsx (line 37-40: if targetLang===source → toast.info(t('already_same_lang')) and return). DB mutation to set test user country_code='KR' skipped per main-agent note.",
+    "translate_failed toast on empty translation — code path inspected in translate.js (translateBlock throws 'empty_translation' when data.translated is empty) and TranslateButton.jsx catch block calls toast.error(t('translate_failed')). Hard to trigger without mocking MyMemory; not network-tested."
+  ]
+}

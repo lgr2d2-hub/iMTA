@@ -3,9 +3,10 @@ import { useNavigate, useParams } from "react-router-dom";
 import api from "../lib/api";
 import { useLang } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
-import { ArrowLeft, Languages, Share2, Check } from "lucide-react";
-import { translateText, timeAgo } from "../lib/translate";
+import { ArrowLeft, Share2, Check } from "lucide-react";
+import { timeAgo } from "../lib/translate";
 import { toast } from "sonner";
+import { TranslateButton } from "../components/TranslateButton";
 
 function daysLeft(iso) {
   const ms = new Date(iso).getTime() - Date.now();
@@ -18,8 +19,7 @@ export default function PetitionDetail() {
   const { t, lang } = useLang();
   const { user } = useAuth();
   const [p, setP] = useState(null);
-  const [translated, setTranslated] = useState(null);
-  const [translating, setTranslating] = useState(false);
+  const [translation, setTranslation] = useState(null);
 
   const load = async () => {
     try {
@@ -42,14 +42,6 @@ export default function PetitionDetail() {
     } catch { toast.error(t("error")); }
   };
 
-  const doTranslate = async () => {
-    if (translated) { setTranslated(null); return; }
-    setTranslating(true);
-    const tt = await translateText(p.description, lang);
-    setTranslated(tt);
-    setTranslating(false);
-  };
-
   const share = async () => {
     try {
       if (navigator.share) await navigator.share({ url: window.location.href, title: p.title });
@@ -60,12 +52,6 @@ export default function PetitionDetail() {
   if (!p) {
     return <div className="px-4 py-10 text-center"><div className="w-8 h-8 border-2 border-imta border-t-transparent rounded-full animate-spin mx-auto" /></div>;
   }
-
-  const translateLabel = () => {
-    if (translating) return t("translating");
-    if (translated) return t("original");
-    return t("translate_post");
-  };
 
   const dleft = daysLeft(p.deadline);
   const progress = Math.min(100, (p.signature_count / 300000) * 100);
@@ -78,7 +64,7 @@ export default function PetitionDetail() {
 
       <div className="imta-card p-4">
         <div className="flex items-start justify-between gap-2">
-          <h1 className="text-lg font-bold leading-tight">{p.title}</h1>
+          <h1 className="text-lg font-bold leading-tight" data-testid="petition-title">{translation?.title || p.title}</h1>
           <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-50 text-red-600 font-bold whitespace-nowrap">D-{dleft}</span>
         </div>
         <div className="text-xs text-gray-500 mt-2">{timeAgo(p.created_at, lang)}</div>
@@ -92,14 +78,21 @@ export default function PetitionDetail() {
           </div>
         </div>
 
-        <div className="whitespace-pre-wrap text-sm text-gray-800 mt-4 leading-relaxed" data-testid="petition-description">
-          {translated || p.description}
+        {translation && (
+          <div className="text-[11px] italic text-gray-400 mt-4" data-testid="petition-translated-label">
+            {t("translated_label")}
+          </div>
+        )}
+        <div className="whitespace-pre-wrap text-sm text-gray-800 mt-2 leading-relaxed" data-testid="petition-description">
+          {translation?.body || p.description}
         </div>
 
         <div className="flex gap-2 mt-4">
-          <button onClick={doTranslate} className="text-xs px-3 py-1.5 rounded-full bg-imta-light text-imta font-medium flex items-center gap-1" data-testid="translate-petition-btn">
-            <Languages size={12} /> {translateLabel()}
-          </button>
+          <TranslateButton
+            id={`petition_${p.petition_id}`}
+            blocks={{ title: p.title, body: p.description }}
+            onResult={setTranslation}
+          />
           <button onClick={share} className="text-xs px-3 py-1.5 rounded-full bg-gray-100 font-medium flex items-center gap-1" data-testid="share-petition-btn">
             <Share2 size={12} /> {t("share")}
           </button>

@@ -3,9 +3,10 @@ import api from "../lib/api";
 import { useLang } from "../context/LanguageContext";
 import { REVIEW_CATEGORIES } from "../lib/constants";
 import { catLabel } from "../lib/i18n";
-import { Search, ThumbsUp, Languages, Star } from "lucide-react";
+import { Search, ThumbsUp, Star, UserRound } from "lucide-react";
 import { toast } from "sonner";
-import { translateText, timeAgo } from "../lib/translate";
+import { timeAgo } from "../lib/translate";
+import { TranslateButton } from "../components/TranslateButton";
 
 export default function Reviews() {
   const { t, lang } = useLang();
@@ -73,27 +74,15 @@ export default function Reviews() {
 }
 
 function ReviewCard({ r, t, lang }) {
-  const [translated, setTranslated] = useState(null);
-  const [translating, setTranslating] = useState(false);
+  const [translation, setTranslation] = useState(null);
   const [likes, setLikes] = useState(r.likes || 0);
-
-  const translateLabel = () => {
-    if (translating) return t("translating");
-    if (translated) return t("original");
-    return t("translate");
-  };
+  const isAnon = r.is_anonymous || r.author?.nickname === "익명";
 
   const like = async () => {
     try {
       const { data } = await api.post(`/reviews/${r.review_id}/like`);
       setLikes(data.likes);
     } catch { toast.error(t("login_required")); }
-  };
-  const doTranslate = async () => {
-    if (translated) { setTranslated(null); return; }
-    setTranslating(true);
-    setTranslated(await translateText(r.content, lang));
-    setTranslating(false);
   };
 
   return (
@@ -107,18 +96,33 @@ function ReviewCard({ r, t, lang }) {
         </div>
       </div>
       <div className="text-xs text-gray-500 mt-1 flex items-center gap-2">
-        <span>{r.author?.country_flag} {r.author?.nickname}</span>
+        {isAnon ? (
+          <span className="flex items-center gap-1">
+            <UserRound size={11} className="text-gray-400" />
+            {t("anonymous_short")}
+          </span>
+        ) : (
+          <span>{r.author?.country_flag} {r.author?.nickname}</span>
+        )}
         <span>·</span>
         <span>{timeAgo(r.created_at, lang)}</span>
       </div>
-      <div className="text-sm text-gray-800 mt-2 whitespace-pre-wrap">{translated || r.content}</div>
-      <div className="flex items-center gap-2 mt-2">
+      {translation && (
+        <div className="text-[10px] italic text-gray-400 mt-2" data-testid={`review-translated-label-${r.review_id}`}>
+          {t("translated_label")}
+        </div>
+      )}
+      <div className="text-sm text-gray-800 mt-2 whitespace-pre-wrap">{translation?.body || r.content}</div>
+      <div className="flex items-center gap-2 mt-2 flex-wrap">
         <button onClick={like} className="text-xs px-3 py-1.5 rounded-full bg-gray-100 text-gray-700 font-medium flex items-center gap-1" data-testid={`review-like-${r.review_id}`}>
           <ThumbsUp size={11} /> {likes}
         </button>
-        <button onClick={doTranslate} className="text-xs px-3 py-1.5 rounded-full bg-imta-light text-imta font-medium flex items-center gap-1" data-testid={`review-translate-${r.review_id}`}>
-          <Languages size={11} /> {translateLabel()}
-        </button>
+        <TranslateButton
+          id={`review_${r.review_id}`}
+          blocks={{ body: r.content }}
+          onResult={setTranslation}
+          size="sm"
+        />
       </div>
     </div>
   );

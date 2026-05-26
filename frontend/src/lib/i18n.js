@@ -102,6 +102,10 @@ const T = {
     channel_name_too_short: "채팅방 이름은 최소 2자 이상이어야 합니다",
     channel_desc_ph: "채팅방을 간단히 소개해주세요 (선택)",
     pick_emoji: "이모지 선택",
+    translated_label: "(번역됨 / Translated)",
+    translate_failed: "번역에 실패했습니다. 잠시 후 다시 시도해주세요.",
+    already_same_lang: "이미 같은 언어로 작성된 글입니다.",
+    translate_to: "번역",
   },
   en: {
     app_name: "Immigrants Time", app_tagline: "From scattered experiences to connected knowledge",
@@ -186,6 +190,10 @@ const T = {
     channel_name_too_short: "Channel name must be at least 2 characters",
     channel_desc_ph: "Briefly describe the channel (optional)",
     pick_emoji: "Pick an emoji",
+    translated_label: "(Translated)",
+    translate_failed: "Translation failed. Please try again later.",
+    already_same_lang: "This post is already in your language.",
+    translate_to: "Translate",
   },
   vi: {
     app_name: "Thời gian Nhập cư", app_tagline: "Từ kinh nghiệm rời rạc đến kiến thức kết nối",
