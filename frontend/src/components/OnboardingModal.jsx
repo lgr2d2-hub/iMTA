@@ -104,3 +104,5 @@ export function OnboardingModal({ open }) {
     </Dialog>
   );
 }
+overflow-y: auto;
+max-height: 70vh;
